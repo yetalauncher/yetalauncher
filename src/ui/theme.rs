@@ -1,12 +1,16 @@
-use iced::{color, theme, widget::button, Background, BorderRadius, Color};
+use iced::{color, theme, BorderRadius, Color};
+
+use super::sidebar::SidebarTheme;
 
 
 #[derive(Debug, Clone, Copy)]
 pub struct YetaTheme {
-    background_primary: Color,
-    text: Color,
-    main: Color,
-    border_radius: BorderRadius
+    pub background_primary: Color,
+    pub background_secondary: Color,
+    pub background_tertiary: Color,
+    pub text: Color,
+    pub main: Color,
+    pub border_radius: BorderRadius
 }
 
 
@@ -28,8 +32,12 @@ impl YetaTheme {
         }
     }
 
-    pub fn button() -> theme::Button {
-        theme::Button::custom(YetaTheme::default())
+    pub fn sidebar_button() -> theme::Button {
+        theme::Button::custom(SidebarTheme)
+    }
+
+    pub fn sidebar() -> theme::Container {
+        theme::Container::Custom(Box::new(SidebarTheme))
     }
 }
 
@@ -37,34 +45,11 @@ impl Default for YetaTheme {
     fn default() -> Self {
         Self {
             background_primary: color!(0x060606),
+            background_secondary: color!(0x111214),
+            background_tertiary: color!(0x171718),
             text: color!(0xEEEEEE),
             main: color!(160, 30, 212),
-            border_radius: 6.0.into()
+            border_radius: 5.0.into()
         }
-    }
-}
-
-impl button::StyleSheet for YetaTheme {
-    type Style = iced::Theme;
-
-    fn active(&self, _: &Self::Style) -> button::Appearance {
-        button::Appearance {
-            text_color: self.text,
-            border_radius: self.border_radius,
-            ..Default::default()
-        }
-    }
-
-    fn hovered(&self, _: &Self::Style) -> button::Appearance {
-        button::Appearance {
-            text_color: self.text,
-            border_radius: self.border_radius,
-            background: Some(Background::Color(self.main)),
-            ..Default::default()
-        }
-    }
-
-    fn pressed(&self, style: &Self::Style) -> button::Appearance {
-        Self::hovered(self, style)
     }
 }
