@@ -2,6 +2,8 @@ use iced::widget::{column, Column, button};
 
 use crate::Message;
 
+use super::theme::YetaTheme;
+
 
 pub struct Sidebar;
 
@@ -16,10 +18,10 @@ pub enum SidebarMessage {
 impl Sidebar {
     pub fn draw<'a>() -> Column<'a, Message> {
         column![
-            button("Home").on_press(Message::SidebarMessage(SidebarMessage::HomeButton)),
-            button("Create").on_press(Message::SidebarMessage(SidebarMessage::CreateButton)),
-            button("Accounts").on_press(Message::SidebarMessage(SidebarMessage::AccountsButton)),
-            button("Settings").on_press(Message::SidebarMessage(SidebarMessage::SettingsButton))
+            button("Home").style(YetaTheme::button()).on_press(Message::SidebarMessage(SidebarMessage::HomeButton)),
+            button("Create").style(YetaTheme::button()).on_press(Message::SidebarMessage(SidebarMessage::CreateButton)),
+            button("Accounts").style(YetaTheme::button()).on_press(Message::SidebarMessage(SidebarMessage::AccountsButton)),
+            button("Settings").style(YetaTheme::button()).on_press(Message::SidebarMessage(SidebarMessage::SettingsButton))
         ].into()
     }
 }

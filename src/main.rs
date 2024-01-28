@@ -1,9 +1,10 @@
-use iced::{Sandbox, widget::{text, column, row}, Settings, theme::Palette, Color};
+use iced::{widget::row, Sandbox, Settings};
 use log::*;
 use simple_logger::SimpleLogger;
-use ui::{pages::Pages, sidebar::{Sidebar, SidebarMessage}};
+use ui::{pages::Pages, sidebar::{Sidebar, SidebarMessage}, theme::YetaTheme};
 
 pub mod ui;
+
 
 fn main() {
     SimpleLogger::new()
@@ -51,10 +52,10 @@ impl Sandbox for YetaLauncher {
     fn update(&mut self, message: Self::Message) {
         match message {
             Message::SidebarMessage(message) => Pages::switch_page(self, message)
-        }
+        };
     }
 
-    fn view(&self) -> iced::Element<'_, Self::Message> {
+    fn view(&self) -> iced::Element<Message>{
         row![
             Sidebar::draw(),
             Pages::draw(self)
@@ -62,14 +63,6 @@ impl Sandbox for YetaLauncher {
     }
 
     fn theme(&self) -> iced::Theme {
-        iced::Theme::custom(
-            Palette {
-                background: Color::from_rgb8(6, 6, 6),
-                text: Color::from_rgb8(220, 220, 210),
-                primary: Color::from_rgb8(160, 30, 212),
-                success: Color::from_rgb8(100, 255, 100),
-                danger: Color::from_rgb8(255, 100, 100)
-            }
-        )
+        iced::Theme::custom(YetaTheme::default().palette())
     }
 }
