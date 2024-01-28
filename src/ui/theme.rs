@@ -1,4 +1,4 @@
-use iced::{color, theme, BorderRadius, Color};
+use iced::{color, font, theme, widget::svg, BorderRadius, Color, Font};
 
 use super::sidebar::SidebarTheme;
 
@@ -22,6 +22,9 @@ pub enum ButtonTheme {
 }
 
 impl YetaTheme {
+    pub const FONT_MAIN: Font = Font::with_name("Nunito Medium");
+    pub const NUNITO_BYTES: &'static [u8]  = include_bytes!("../resources/fonts/Nunito-Medium.ttf");
+
     pub fn palette(&self) -> theme::Palette {
         theme::Palette {
             background: self.background_primary,
@@ -32,12 +35,32 @@ impl YetaTheme {
         }
     }
 
-    pub fn sidebar_button() -> theme::Button {
-        theme::Button::custom(SidebarTheme)
+    pub fn font(weight: font::Weight) -> Font {
+        Font {
+            family: font::Family::Name("Nunito Medium"),
+            weight,
+            ..Default::default()
+        }
+    }
+
+    pub fn alt_font(weight: font::Weight) -> Font {
+        Font {
+            family: font::Family::Name("Open Sans"),
+            weight,
+            ..Default::default()
+        }
     }
 
     pub fn sidebar() -> theme::Container {
         theme::Container::Custom(Box::new(SidebarTheme))
+    }
+
+    pub fn sidebar_button() -> theme::Button {
+        theme::Button::custom(SidebarTheme)
+    }
+
+    pub fn svg() -> theme::Svg {
+        theme::Svg::Custom(Box::new(YetaTheme::default()))
     }
 }
 
@@ -51,5 +74,13 @@ impl Default for YetaTheme {
             main: color!(160, 30, 212),
             border_radius: 5.0.into()
         }
+    }
+}
+
+impl svg::StyleSheet for YetaTheme {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _: &Self::Style) -> svg::Appearance {
+        svg::Appearance { color: Some(self.text) }
     }
 }

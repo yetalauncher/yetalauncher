@@ -1,11 +1,11 @@
 use iced::{widget::text, Element};
 
-use crate::{Message, YetaLauncher};
+use crate::{ui::theme::YetaTheme, Message, YetaLauncher};
 
 pub struct HomePage;
 
 impl HomePage {
     pub fn draw<'a>(_: &YetaLauncher) -> Element<'a, Message> {
-        text("Homeeeeee").into()
+        text("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz").font(YetaTheme::FONT_MAIN).into()
     }
 }

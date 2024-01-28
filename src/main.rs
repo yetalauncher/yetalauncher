@@ -1,4 +1,6 @@
-use iced::{widget::row, Sandbox, Settings};
+use std::borrow::Cow;
+
+use iced::{executor, font, widget::row, Application, Command, Settings};
 use log::*;
 use simple_logger::SimpleLogger;
 use ui::{pages::Pages, sidebar::{Sidebar, SidebarMessage}, theme::YetaTheme};
@@ -21,6 +23,7 @@ fn main() {
             size: (1000, 600),
             ..Default::default()
         },
+        default_font: YetaTheme::font(font::Weight::Light),
         ..Default::default()
     };
 
@@ -33,26 +36,39 @@ pub struct YetaLauncher {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    SidebarMessage(SidebarMessage)
+    SidebarMessage(SidebarMessage),
+    FontLoaded(Result<(), font::Error>)
 }
 
-impl Sandbox for YetaLauncher {
+impl Application for YetaLauncher {
     type Message = Message;
+    type Executor = executor::Default;
+    type Theme = iced::Theme;
+    type Flags = ();
 
-    fn new() -> Self {
-        Self {
-            page: Pages::Home
-        }
+    fn new(_: Self::Flags) -> (YetaLauncher, iced::Command<Message>) {
+        (
+            Self {
+                page: Pages::Home
+            },
+            Command::batch([
+                font::load(Cow::from(YetaTheme::NUNITO_BYTES)).map(Message::FontLoaded),
+            ])
+        )
     }
 
     fn title(&self) -> String {
         String::from("YetaLauncher")
     }
 
-    fn update(&mut self, message: Self::Message) {
+    fn update(&mut self, message: Self::Message) -> Command<Message> {
         match message {
-            Message::SidebarMessage(message) => Pages::switch_page(self, message)
+            Message::SidebarMessage(message) => Pages::switch_page(self, message),
+            Message::FontLoaded(result) => if let Err(err) = result {
+                warn!("Failed to load font: {err:?}")
+            } else { debug!("Font loaded") }
         };
+        Command::none()
     }
 
     fn view(&self) -> iced::Element<Message>{
