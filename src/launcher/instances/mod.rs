@@ -18,7 +18,6 @@ pub mod multimc;
 // Instance Gather Result
 pub type IResult<T> = core::result::Result<T, InstanceGatherError>;
 
-pub const META_FILENAME: &str = "yamcl-data.json";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SimpleInstance {

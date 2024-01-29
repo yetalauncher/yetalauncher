@@ -4,11 +4,7 @@ use log::*;
 
 use crate::launcher::authentication::auth_structs::*;
 
-use super::utils::get_config_dir;
-
-
-
-const ACCOUNT_FILE_NAME: &str = "accounts.json";
+use super::{consts::ACCOUNT_FILE_NAME, utils::get_config_dir};
 
 
 fn get_accounts_path() -> PathBuf {

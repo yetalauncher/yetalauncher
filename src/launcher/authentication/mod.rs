@@ -6,13 +6,10 @@ use serde_json::json;
 use tokio::runtime::Handle;
 use uuid::Uuid;
 
-use crate::{app::{accounts::{save_new_account, update_account}, utils::{NotificationState, Notifier}}, launcher::authentication::auth_structs::*};
+use crate::{app::{accounts::{save_new_account, update_account}, consts::{MS_CLIENT_ID, REDIRECT_PORT}, utils::{NotificationState, Notifier}}, launcher::authentication::auth_structs::*};
 
 pub mod auth_structs;
 
-
-const MS_CLIENT_ID: &str = "5431ff2d-20f8-415b-aa2f-5218eba055ea"; // The YetaLauncher / Yet Another MC Launcher client_id. If you fork this project, please make sure to use your own!
-const REDIRECT_PORT: u16 = 32303;
 
 #[allow(dead_code)] // for now, until this is reimplemented
 fn get_login_url() -> String {

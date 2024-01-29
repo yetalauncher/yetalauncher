@@ -3,17 +3,14 @@ use std::{iter, path::PathBuf, fs};
 use log::{*};
 use reqwest::Client;
 
-use crate::{app::utils::{download_file_checked, get_assets_dir, get_classpath_separator, get_client_jar_dir, get_log4j_dir, maven_identifier_to_path}, launcher::modloaders::LoaderManifests};
+use crate::{app::{consts::MINECRAFT_VERSION_URL, utils::{download_file_checked, get_assets_dir, get_classpath_separator, get_client_jar_dir, get_log4j_dir, maven_identifier_to_path}}, launcher::modloaders::LoaderManifests};
 
 use super::mc_structs::*;
 
 
-const VERSION_URL: &str = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
-
-
 impl MCVersionList {
     pub async fn get(client: &Client) -> Option<Self> {
-        let version_list: Result<MCVersionList, reqwest::Error> = client.get(VERSION_URL).send().await.unwrap().json().await;
+        let version_list: Result<MCVersionList, reqwest::Error> = client.get(MINECRAFT_VERSION_URL).send().await.unwrap().json().await;
         match version_list {
             Ok(list) => Some(list),
             Err(e) => {

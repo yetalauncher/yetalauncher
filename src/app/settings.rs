@@ -1,15 +1,11 @@
 use std::fs;
 
-use log::warn;
+use log::*;
 use serde::{Deserialize, Serialize};
 
 use crate::launcher::java::JavaDetails;
 
-use super::utils::get_config_dir;
-
-
-
-const SETTINGS_FILE_NAME: &str = "settings.json";
+use super::{consts::SETTINGS_FILE_NAME, utils::get_config_dir};
 
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -20,25 +16,22 @@ pub struct AppSettings {
     pub java_settings: Vec<JavaDetails>
 }
 
-pub fn get_settings() -> AppSettings {
-    AppSettings::get()
-}
-
-pub fn update_settings(new_settings: AppSettings) {
-    new_settings.set()
-}
-
 impl AppSettings {
     pub fn get() -> Self {
+        info!("Reading settings...");
         let path = get_config_dir().join(SETTINGS_FILE_NAME);
 
         if !path.is_file() {
+            info!("Settings not found. Generating...");
             Self::generate();
         }
 
         let file = fs::read_to_string(path).expect("Failed to read settings file!");
         match serde_json::from_str(&file) {
-            Ok(settings) => settings,
+            Ok(settings) => {
+                debug!("Successfully loaded settings: {settings:#?}");
+                settings
+            },
             Err(err) => {
                 warn!("Failed to parse settings: {err}, resetting them!");
                 Self::generate()
@@ -50,6 +43,10 @@ impl AppSettings {
         let path = get_config_dir().join(SETTINGS_FILE_NAME);
 
         fs::write(path, serde_json::to_string_pretty(&self).unwrap()).expect("Failed to write to settings file!");
+    }
+
+    pub fn update(new_settings: AppSettings) {
+        new_settings.set()
     }
 
     fn generate() -> Self {
@@ -68,6 +65,7 @@ impl AppSettings {
             }
         }
 
+        debug!("Generating settings at {path:?}");
         fs::write(path, serde_json::to_string_pretty(&defaults).unwrap()).expect("Failed to write to settings file!");
         defaults
     }

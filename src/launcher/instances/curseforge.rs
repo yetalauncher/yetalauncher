@@ -5,9 +5,9 @@ use reqwest::Client;
 use serde::{Serialize, Deserialize};
 use tokio::fs;
 
-use crate::app::{settings::AppSettings, utils::download_file_checked};
+use crate::app::{consts::META_FILE_NAME, settings::AppSettings, utils::download_file_checked};
 
-use super::{errors::InstanceGatherError, IResult, InstanceType, META_FILENAME};
+use super::{errors::InstanceGatherError, IResult, InstanceType};
 
 
 
@@ -101,7 +101,7 @@ pub struct CFMetadata {
 
 impl CFMetadata {
     pub async fn get(instance_path: &PathBuf) -> IResult<Self> {
-        let path = instance_path.join(META_FILENAME);
+        let path = instance_path.join(META_FILE_NAME);
 
         match fs::read(&path).await {
             Ok(contents) => {
@@ -131,7 +131,7 @@ impl CFMetadata {
     }
 
     async fn generate(instance_path: &PathBuf) -> IResult<Self> {
-        let path = instance_path.join(META_FILENAME);
+        let path = instance_path.join(META_FILE_NAME);
 
         let meta = CFMetadata {
             instance_id: fastrand::u32(..),

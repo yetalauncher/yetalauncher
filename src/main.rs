@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use app::settings::AppSettings;
 use iced::{executor, font, widget::row, Application, Command, Settings};
 use log::*;
 use simple_logger::SimpleLogger;
@@ -34,7 +35,8 @@ async fn main() {
 }
 
 pub struct YetaLauncher {
-    page: Pages
+    page: Pages,
+    settings: AppSettings
 }
 
 #[derive(Debug, Clone)]
@@ -52,7 +54,8 @@ impl Application for YetaLauncher {
     fn new(_: Self::Flags) -> (YetaLauncher, iced::Command<Message>) {
         (
             Self {
-                page: Pages::Home
+                page: Pages::Home,
+                settings: AppSettings::get()
             },
             Command::batch([
                 font::load(Cow::from(YetaTheme::NUNITO_BYTES)).map(Message::FontLoaded),

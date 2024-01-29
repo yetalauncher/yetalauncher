@@ -4,7 +4,9 @@ use log::warn;
 use serde::{Serialize, Deserialize};
 use tokio::fs;
 
-use super::{errors::InstanceGatherError, IResult, InstanceType, META_FILENAME};
+use crate::app::consts::META_FILE_NAME;
+
+use super::{errors::InstanceGatherError, IResult, InstanceType};
 
 
 // Handling the "instance.cfg" file
@@ -85,7 +87,7 @@ pub struct MMCMetadata {
 
 impl MMCMetadata {
     pub async fn get(instance_path: &Path) -> IResult<Self> {
-        let path = instance_path.join(META_FILENAME);
+        let path = instance_path.join(META_FILE_NAME);
 
         match fs::read(&path).await {
             Ok(contents) => {
@@ -105,7 +107,7 @@ impl MMCMetadata {
     }
 
     async fn generate(instance_path: &Path) -> IResult<Self> {
-        let path = instance_path.join(META_FILENAME);
+        let path = instance_path.join(META_FILE_NAME);
 
         let meta = MMCMetadata {
             instance_id: fastrand::u32(..),
