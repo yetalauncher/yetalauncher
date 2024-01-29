@@ -5,10 +5,13 @@ use log::*;
 use simple_logger::SimpleLogger;
 use ui::{pages::Pages, sidebar::{Sidebar, SidebarMessage}, theme::YetaTheme};
 
+
+pub mod app;
 pub mod ui;
+pub mod launcher;
 
-
-fn main() {
+#[tokio::main]
+async fn main() {
     SimpleLogger::new()
     .with_level(log::LevelFilter::Warn)
     .with_module_level("yetalauncher", log::LevelFilter::Debug)
