@@ -1,0 +1,13 @@
+import { HorizontalBox } from "std-widgets.slint";
+import { Sidebar } from "sidebar.slint";
+export component MainWindow inherits Window {
+    background: #060606;
+    padding: 0;
+
+    Sidebar { x: 0px; z: 5; }
+    Text {
+        x: 52px;
+        y: 0px;
+        text: "Content here";
+    }
+}

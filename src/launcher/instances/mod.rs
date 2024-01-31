@@ -45,11 +45,9 @@ pub enum InstanceType {
 }
 
 
-
-pub async fn get_instances() -> IResult<Vec<SimpleInstance>> {
+pub async fn get_instances(settings: AppSettings) -> IResult<Vec<SimpleInstance>> {
     let time_start = Instant::now();
 
-    let settings = AppSettings::get();
     let dir = settings.instance_path.ok_or(InstanceGatherError::PathUnset)?;
     
     let mut paths = fs::read_dir(&dir).await.or(Err(InstanceGatherError::DirectoryReadFailed(dir)))?;

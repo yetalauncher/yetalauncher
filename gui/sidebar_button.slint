@@ -1,0 +1,38 @@
+import { Button, HorizontalBox } from "std-widgets.slint";
+export component SidebarButton inherits VerticalLayout {
+    in property <string> text;
+    in property <image> icon;
+    in property <bool> expanded;
+    callback clicked <=> area.clicked;
+
+    padding-left: 4px;
+    padding-right: 4px;
+
+    Rectangle { // Has to be a separate element because there's no margin property 
+        background: area.has-hover ? #ad21db : #111214;
+        preferred-height: 40px;
+        border-radius: 6px;
+
+        area := TouchArea { mouse-cursor: pointer; }
+        HorizontalBox {
+            Image {
+                source: icon;
+                width: 32px;
+                height: 32px;
+                colorize: #EEE;
+            }
+            if expanded: Text {
+                text: text;
+                color: #EEE;
+                font-weight: 600;
+                font-size: 20px;
+                overflow: TextOverflow.clip;
+            }
+        }
+    
+        animate background {
+            duration: 100ms;
+        }
+    }
+
+}
