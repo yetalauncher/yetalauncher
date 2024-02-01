@@ -1,9 +1,6 @@
-use app::settings::AppSettings;
-use launcher::instances::SimpleInstance;
 use log::*;
 use simple_logger::SimpleLogger;
 use slint::PlatformError;
-use ui::pages::Pages;
 
 slint::include_modules!();
 
@@ -13,7 +10,7 @@ pub mod launcher;
 
 #[tokio::main]
 async fn main() {
-    println!("Starting YetaLauncher...");
+    println!("Initializing YetaLauncher...");
     SimpleLogger::new()
     .with_level(log::LevelFilter::Warn)
     .with_module_level("yetalauncher", log::LevelFilter::Debug)
@@ -24,24 +21,15 @@ async fn main() {
     YetaLauncher::run().await.expect("YetaLauncher failed to start");
 }
 
-pub struct YetaLauncher {
-    page: Pages,
-    settings: AppSettings,
-    instances: Option<Vec<SimpleInstance>>
-}
+pub struct YetaLauncher;
 
 impl YetaLauncher {
     async fn run() -> Result<(), PlatformError> {
         let window = MainWindow::new()?;
 
-        let app = Self {
-            page: Pages::Home,
-            settings: AppSettings::get(),
-            instances: None,
-        };
 
+        info!("Starting...");
         window.run()?;
-        
         Ok(())
     }
 }

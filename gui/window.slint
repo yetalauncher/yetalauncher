@@ -1,13 +1,28 @@
 import { HorizontalBox } from "std-widgets.slint";
 import { Sidebar } from "sidebar.slint";
+import { Pages } from "enums.slint";
+import { App } from "globals.slint";
+import { SettingsPage } from "pages/settings.slint";
+import { HomePage } from "pages/home.slint";
+import { AccountsPage } from "pages/accounts.slint";
+import { CreatePage } from "pages/create.slint";
+
 export component MainWindow inherits Window {
+    in-out property <Pages> page <=> App.page;
+
+    title <=> App.title;
     background: #060606;
     padding: 0;
 
     Sidebar { x: 0px; z: 5; }
-    Text {
+    Rectangle {
+        z: 0;
         x: 52px;
-        y: 0px;
-        text: "Content here";
+
+        if page == Pages.Home: HomePage {}
+        if page == Pages.Create: CreatePage {}
+        if page == Pages.Accounts: AccountsPage {}
+        if page == Pages.Settings: SettingsPage {}
     }
+
 }

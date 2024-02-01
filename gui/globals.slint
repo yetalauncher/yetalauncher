@@ -1,0 +1,11 @@
+import { Pages } from "enums.slint";
+
+export global App {
+    in-out property <Pages> page;
+    in-out property <string> title:
+        page == Pages.Home ? "Home - YetaLauncher" :
+        page == Pages.Create ? "Create - YetaLauncher" :
+        page == Pages.Accounts ? "Accounts - YetaLauncher" :
+        page == Pages.Settings ? "Settings - YetaLauncher" :
+        "YetaLauncher";
+}

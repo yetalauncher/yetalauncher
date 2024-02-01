@@ -1,9 +1,12 @@
 import { Button, HorizontalBox } from "std-widgets.slint";
+import { Pages } from "enums.slint";
+import { App } from "globals.slint";
+
 export component SidebarButton inherits VerticalLayout {
     in property <string> text;
+    in property <Pages> page;
     in property <image> icon;
     in property <bool> expanded;
-    callback clicked <=> area.clicked;
 
     padding-left: 4px;
     padding-right: 4px;
@@ -13,7 +16,10 @@ export component SidebarButton inherits VerticalLayout {
         preferred-height: 40px;
         border-radius: 6px;
 
-        area := TouchArea { mouse-cursor: pointer; }
+        area := TouchArea {
+            mouse-cursor: pointer;
+            clicked => { App.page = page }
+        }
         HorizontalBox {
             Image {
                 source: icon;
