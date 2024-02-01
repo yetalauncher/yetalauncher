@@ -12,8 +12,7 @@ pub mod launcher;
 async fn main() {
     println!("Initializing YetaLauncher...");
     SimpleLogger::new()
-    .with_level(log::LevelFilter::Warn)
-    .with_module_level("yetalauncher", log::LevelFilter::Debug)
+    .with_level(log::LevelFilter::Debug)
     .env()
     .init()
     .unwrap_or_else(|err| eprintln!("Failed to initialize logger: {err}"));
