@@ -2,8 +2,12 @@ use std::process::Command;
 
 use log::{*};
 use serde::{Deserialize, Serialize};
+use slint::ModelRc;
 
 use super::launching::mc_structs::MCVersionDetails;
+
+use crate::{app::slint_utils::SlintOption, slint_generatedMainWindow::*};
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JavaDetails {
@@ -44,5 +48,28 @@ pub fn get_java_version(path: String, args: String) -> Result<String, String> {
 impl JavaDetails {
     pub fn get_args(&self) -> String {
         format!("-Xmx{}M -Xms{}M {}", self.xmx, self.xms, self.args)
+    }
+
+    pub fn to_slint(&self) -> SlJavaDetails {
+        SlJavaDetails {
+            args: self.args.to_string().into(),
+            label: self.label.to_string().into(),
+            path: self.path.to_string().into(),
+            version: self.version.to_string().into(),
+            xms: (self.xms as i32).into(),
+            xmx: (self.xmx as i32).into(),
+            minecraft_versions: self.minecraft_versions.to_slint()
+        }
+    }
+}
+
+impl JavaMCRange {
+    pub fn to_slint(&self) -> (ModelRc<SlMCVersionDetails>, bool, ModelRc<SlMCVersionDetails>, bool) {
+        (
+            SlintOption::from(self.min.as_ref().map(|details| details.to_slint())).into(),
+            self.min.is_some(),
+            SlintOption::from(self.min.as_ref().map(|details| details.to_slint())).into(),
+            self.min.is_some()
+        )
     }
 }

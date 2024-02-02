@@ -1,5 +1,42 @@
+import { App, Palette } from "../globals.slint";
+import { VerticalBox } from "std-widgets.slint";
+
+
 export component SettingsPage inherits VerticalLayout {
-    Text {
-        text: "Settings page";
+    padding: 8px;
+
+    Rectangle {
+        background: Palette.bg-secondary;
+        border-color: touch.has-hover ? Palette.primary : Palette.bg-tertiary;
+        border-radius: 6px;
+        border-width: 1px;
+        height: 76px;
+
+        box := VerticalBox {
+            Text {
+                x: 8px;
+                text: "Instance Path";
+                font-weight: 700;
+                font-size: 18px;
+            }
+    
+            Rectangle {
+                x: 12px;
+                background: Palette.bg-tertiary;
+                border-radius: 4px;
+
+                Text {
+                    x: 12px;
+                    text: App.settings.instance-path-set ? App.settings.instance-path[0] : "Click to set!";
+                } 
+            }
+        }
+        touch := TouchArea {
+            mouse-cursor: pointer;
+        }
+
+        animate border-color {
+            duration: 150ms;
+        }
     }
 }

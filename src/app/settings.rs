@@ -2,10 +2,13 @@ use std::fs;
 
 use log::*;
 use serde::{Deserialize, Serialize};
+use slint::{ModelRc, VecModel};
 
-use crate::launcher::java::JavaDetails;
+use crate::{slint_generatedMainWindow::*, launcher::java::JavaDetails};
 
-use super::{consts::SETTINGS_FILE_NAME, utils::get_config_dir};
+use super::{consts::SETTINGS_FILE_NAME, slint_utils::SlintOption, utils::get_config_dir};
+
+
 
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -68,5 +71,18 @@ impl AppSettings {
         debug!("Generating settings at {path:?}");
         fs::write(path, serde_json::to_string_pretty(&defaults).unwrap()).expect("Failed to write to settings file!");
         defaults
+    }
+
+    pub fn to_slint(&self) -> SlSettings {
+        SlSettings { // this is not nice
+            icon_path: SlintOption::from(self.icon_path.clone()).into(),
+            icon_path_set: self.icon_path.is_some(),
+            instance_path: SlintOption::from(self.instance_path.clone()).into(),
+            instance_path_set: self.instance_path.is_some(),
+            instance_size: self.instance_size.into(),
+            java_settings: ModelRc::new(VecModel::from(
+                self.java_settings.iter().map(JavaDetails::to_slint).collect::<Vec<SlJavaDetails>>()
+            ))
+        }
     }
 }

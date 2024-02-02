@@ -3,7 +3,7 @@ use std::{iter, path::PathBuf, fs};
 use log::{*};
 use reqwest::Client;
 
-use crate::{app::{consts::MINECRAFT_VERSION_URL, utils::{download_file_checked, get_assets_dir, get_classpath_separator, get_client_jar_dir, get_log4j_dir, maven_identifier_to_path}}, launcher::modloaders::LoaderManifests};
+use crate::{app::{consts::MINECRAFT_VERSION_URL, utils::{download_file_checked, get_assets_dir, get_classpath_separator, get_client_jar_dir, get_log4j_dir, maven_identifier_to_path}}, launcher::modloaders::LoaderManifests, slint_generatedMainWindow::SlMCVersionDetails};
 
 use super::mc_structs::*;
 
@@ -37,6 +37,18 @@ impl MCVersionDetails {
                 error!("Failed to get extended Minecraft version info: {e}");
                 None
             }
+        }
+    }
+
+    pub fn to_slint(&self) -> SlMCVersionDetails {
+        SlMCVersionDetails {
+            compliance_level: self.compliance_level as i32,
+            id: self.id.to_string().into(),
+            release_time: self.release_time.to_string().into(),
+            sha1: self.sha1.to_string().into(),
+            time: self.time.to_string().into(),
+            typ: self.typ.to_string().into(),
+            url: self.url.to_string().into()
         }
     }
 }

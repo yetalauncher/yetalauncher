@@ -1,0 +1,28 @@
+export struct SlMCVersionDetails {
+    id: string,
+    typ: string,
+    url: string,
+    time: string,
+    release_time: string,
+    sha1: string,
+    compliance_level: int
+}
+
+export struct SlJavaDetails {
+    path: string,
+    label: string,
+    version: string,
+    minecraft_versions: { min: [SlMCVersionDetails], min_set: bool, max: [SlMCVersionDetails], max_set: bool },
+    xmx: int,
+    xms: int,
+    args: string
+}
+
+export struct SlSettings {
+    instance_size: int,
+    instance_path: [string],
+    instance_path_set: bool,
+    icon_path: [string],
+    icon_path_set: bool,
+    java_settings: [SlJavaDetails]
+}

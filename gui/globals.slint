@@ -1,4 +1,5 @@
 import { Pages } from "enums.slint";
+import { SlSettings } from "structs.slint";
 
 export global App {
     in-out property <Pages> page;
@@ -8,4 +9,15 @@ export global App {
         page == Pages.Accounts ? "Accounts - YetaLauncher" :
         page == Pages.Settings ? "Settings - YetaLauncher" :
         "YetaLauncher";
+
+    in-out property <SlSettings> settings;
 }
+
+export global Palette {
+    out property <color> text: #eee;
+    out property <color> primary: #ad21db;
+    out property <color> bg-primary: #060606;
+    out property <color> bg-secondary: #111214;
+    out property <color> bg-tertiary: #171718;
+}
+
