@@ -1,4 +1,4 @@
-import { App, Palette } from "../globals.slint";
+import { Settings, Palette } from "../globals.slint";
 import { VerticalBox } from "std-widgets.slint";
 
 
@@ -27,7 +27,7 @@ export component SettingsPage inherits VerticalLayout {
 
                 Text {
                     x: 12px;
-                    text: App.settings.instance-path-set ? App.settings.instance-path[0] : "Click to set!";
+                    text: Settings.settings.instance-path-set ? Settings.settings.instance-path[0] : "Click to set!";
                 } 
             }
         }

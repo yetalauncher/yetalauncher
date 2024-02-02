@@ -33,7 +33,7 @@ impl YetaLauncher {
     async fn run(&self) -> Result<(), PlatformError> {
         let window = MainWindow::new()?;
 
-        window.global::<App>().set_settings(self.settings.to_slint());
+        window.global::<Settings>().set_settings(self.settings.to_slint());
 
         info!("Starting...");
         window.run()?;
