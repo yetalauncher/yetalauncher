@@ -1,0 +1,39 @@
+import { Settings, Palette } from "../globals.slint";
+import { VerticalBox } from "std-widgets.slint";
+
+export component SettingsContainer inherits Rectangle {
+    in property <string> header;
+    in property <string> text;
+    callback clicked <=> area.clicked;
+
+    background: Palette.bg-secondary;
+    border-color: area.has-hover ? Palette.primary : Palette.bg-tertiary;
+    border-radius: 8px;
+    border-width: 1px;
+    height: 76px;
+
+    box := VerticalBox {
+        Text {
+            x: 8px;
+            text: header;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        Rectangle {
+            x: 12px;
+            background: Palette.bg-tertiary;
+            border-radius: 4px;
+
+            Text {
+                x: 12px;
+                text: text;
+            } 
+        }
+    }
+    area := TouchArea { mouse-cursor: pointer; }
+
+    animate border-color {
+        duration: 150ms;
+    }
+}
