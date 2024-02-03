@@ -1,12 +1,13 @@
 import { VerticalBox } from "std-widgets.slint";
 import { SidebarButton } from "sidebar_button.slint";
 import { Pages } from "../enums.slint";
+import { Palette } from "../globals.slint";
 
 export component Sidebar inherits Rectangle {
     property <bool> expanded <=> area.has-hover;
     
-    background: #111214;
-    border-color: #171718;
+    background: Palette.bg-secondary;
+    border-color: Palette.bg-tertiary;
     border-width: 1px;
     width: expanded ? 150px : 52px;
 

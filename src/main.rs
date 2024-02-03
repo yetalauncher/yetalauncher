@@ -45,7 +45,7 @@ impl YetaLauncher {
         window_ref.global::<Settings>().on_update_instance_path(move || {
             let (window2, app2) = (window2.clone(), app2.clone());
             spawn_local(async move {
-                info!("Opening folder picker...");
+                debug!("Opening folder picker...");
                 
                 if let Some(folder) = AsyncFileDialog::new().pick_folder().await {
                     let mut app = app2.write().unwrap();

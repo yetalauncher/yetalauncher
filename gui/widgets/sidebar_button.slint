@@ -1,6 +1,6 @@
 import { Button, HorizontalBox } from "std-widgets.slint";
 import { Pages } from "../enums.slint";
-import { App } from "../globals.slint";
+import { App, Palette } from "../globals.slint";
 
 export component SidebarButton inherits VerticalLayout {
     in property <string> text;
@@ -12,7 +12,7 @@ export component SidebarButton inherits VerticalLayout {
     padding-right: 4px;
 
     Rectangle { // Has to be a separate element because there's no margin property 
-        background: area.has-hover ? #ad21db : #111214;
+        background: area.has-hover ? Palette.primary : Palette.bg-secondary;
         preferred-height: 40px;
         border-radius: 6px;
 
@@ -25,11 +25,11 @@ export component SidebarButton inherits VerticalLayout {
                 source: icon;
                 width: 32px;
                 height: 32px;
-                colorize: #EEE;
+                colorize: Palette.text;
             }
             if expanded: Text {
                 text: text;
-                color: #EEE;
+                color: Palette.text;
                 font-weight: 600;
                 font-size: 20px;
                 overflow: TextOverflow.clip;
