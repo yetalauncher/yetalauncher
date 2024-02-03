@@ -18,6 +18,7 @@ export component MainWindow inherits Window {
     Rectangle {
         z: 0;
         x: 52px;
+        width: parent.width - 52px;
 
         if page == Pages.Home: HomePage {}
         if page == Pages.Create: CreatePage {}
