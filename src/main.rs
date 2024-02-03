@@ -57,6 +57,22 @@ impl YetaLauncher {
             }).unwrap();
         });
 
+        let (window2, app2) = (window_ref.clone(), app_ref.clone());
+        window_ref.global::<Settings>().on_update_icon_path(move || {
+            let (window2, app2) = (window2.clone(), app2.clone());
+            spawn_local(async move {
+                debug!("Opening folder picker...");
+                
+                if let Some(folder) = AsyncFileDialog::new().pick_folder().await {
+                    let mut app = app2.write().unwrap();
+    
+                    app.settings.icon_path = Some(folder.path().to_str().expect("Failed to convert folder path to valid UTF-8!").to_string());
+                    app.settings.set();
+                    window2.global::<Settings>().set_settings(app.settings.to_slint());
+                }
+            }).unwrap();
+        });
+
         info!("Starting...");
         window_ref.run()?;
         Ok(())

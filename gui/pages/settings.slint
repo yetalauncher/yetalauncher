@@ -4,11 +4,18 @@ import { SettingsContainer } from "../widgets/settings_container.slint";
 
 
 export component SettingsPage inherits VerticalLayout {
-    padding: 8px;
+    padding: 10px;
+    spacing: 10px;
 
     SettingsContainer {
         header: "Instance Path";
         text: Settings.settings.instance-path-set ? Settings.settings.instance-path[0] : "Click to set!";
         clicked => { Settings.update-instance-path(); }
+    }
+
+    SettingsContainer {
+        header: "Icon Path";
+        text: Settings.settings.icon-path-set ? Settings.settings.icon-path[0] : "Click to set!";
+        clicked => { Settings.update-icon-path(); }
     }
 }
