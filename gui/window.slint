@@ -7,12 +7,15 @@ import { HomePage } from "pages/home.slint";
 import { AccountsPage } from "pages/accounts.slint";
 import { CreatePage } from "pages/create.slint";
 
+import "../resources/fonts/Nunito-Medium.ttf";
+
 export component MainWindow inherits Window {
     in-out property <Pages> page <=> App.page;
 
     title <=> App.title;
     background: Palette.bg-primary;
     padding: 0;
+    default-font-family: "Nunito";
 
     Sidebar { x: 0px; z: 5; }
     Rectangle {
