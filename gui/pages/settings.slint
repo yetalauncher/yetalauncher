@@ -33,6 +33,7 @@ export component SettingsPage inherits VerticalLayout {
         }
         touch := TouchArea {
             mouse-cursor: pointer;
+            clicked => { Settings.update-instance-path() }
         }
 
         animate border-color {

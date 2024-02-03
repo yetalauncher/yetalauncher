@@ -42,7 +42,7 @@ impl AppSettings {
         }
     }
 
-    pub fn set(self) {
+    pub fn set(&self) {
         let path = get_config_dir().join(SETTINGS_FILE_NAME);
 
         fs::write(path, serde_json::to_string_pretty(&self).unwrap()).expect("Failed to write to settings file!");
