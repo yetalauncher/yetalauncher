@@ -4,6 +4,7 @@ use log::*;
 use rfd::AsyncFileDialog;
 use simple_logger::SimpleLogger;
 use slint::{spawn_local, Model, PlatformError};
+use clone_macro::clone;
 
 use crate::{app::settings::AppSettings, launcher::java::JavaDetails};
 
@@ -36,57 +37,49 @@ pub struct YetaLauncher {
 impl YetaLauncher {
     async fn run(self) -> Result<(), PlatformError> {
         let window = Arc::new(MainWindow::new()?);
-        let app_ref = Arc::new(RwLock::new(self));
+        let app = Arc::new(RwLock::new(self));
 
         let settings = window.global::<Settings>();
 
-        settings.set_settings(app_ref.read().unwrap().settings.to_slint());
+        settings.set_settings(app.read().unwrap().settings.to_slint());
 
-        let (window2, app2) = (window.clone(), app_ref.clone());
-        settings.on_update_instance_path(move || {
-            let (window2, app2) = (window2.clone(), app2.clone());
-            spawn_local(async move {
+        settings.on_update_instance_path(clone!([window, app], move || {
+            spawn_local(clone!([window, app], async move {
                 debug!("Opening folder picker...");
                 
                 if let Some(folder) = AsyncFileDialog::new().pick_folder().await {
-                    let mut app = app2.write().unwrap();
+                    let mut app = app.write().unwrap();
     
                     app.settings.instance_path = Some(folder.path().to_str().expect("Failed to convert folder path to valid UTF-8!").to_string());
                     app.settings.set();
-                    window2.global::<Settings>().set_settings(app.settings.to_slint());
+                    app.sync_settings(&window);
                 }
-            }).unwrap();
-        });
+            })).unwrap();
+        }));
 
-        let (window2, app2) = (window.clone(), app_ref.clone());
-        settings.on_update_icon_path(move || {
-            let (window2, app2) = (window2.clone(), app2.clone());
-            spawn_local(async move {
+        settings.on_update_icon_path(clone!([window, app], move || {
+            spawn_local(clone!([window, app], async move {
                 debug!("Opening folder picker...");
                 
                 if let Some(folder) = AsyncFileDialog::new().pick_folder().await {
-                    let mut app = app2.write().unwrap();
+                    let mut app = app.write().unwrap();
     
                     app.settings.icon_path = Some(folder.path().to_str().expect("Failed to convert folder path to valid UTF-8!").to_string());
                     app.settings.set();
-                    window2.global::<Settings>().set_settings(app.settings.to_slint());
+                    app.sync_settings(&window);
                 }
-            }).unwrap();
-        });
+            })).unwrap();
+        }));
 
-        let (window2, app2) = (window.clone(), app_ref.clone());
-        settings.on_add_java_setting(move || {
-            let mut app = app2.write().unwrap();
+        settings.on_add_java_setting(clone!([window, app], move || {
+            let mut app = app.write().unwrap();
             app.settings.java_settings.push(JavaDetails::default());
-            window2.global::<Settings>().set_settings(
-                app.settings.to_slint()
-            );
-        });
+            app.sync_settings(&window);
+        }));
 
-        let (window2, app2) = (window.clone(), app_ref.clone());
-        settings.on_save_settings(move || {
-            let mut app = app2.write().unwrap();
-            let new_settings = window2.global::<Settings>().get_settings();
+        settings.on_save_settings(clone!([window, app], move || {
+            let mut app = app.write().unwrap();
+            let new_settings = window.global::<Settings>().get_settings();
 
             app.settings.java_settings = new_settings.java_settings
             .iter()
@@ -94,7 +87,7 @@ impl YetaLauncher {
             .collect();
 
             app.settings.set();
-        });
+        }));
 
         info!("Starting...");
         window.run()?;
@@ -105,5 +98,9 @@ impl YetaLauncher {
         Self {
             settings: AppSettings::get()
         }
+    }
+
+    fn sync_settings(&self, window: &Arc<MainWindow>) {
+        window.global::<Settings>().set_settings(self.settings.to_slint());
     }
 }

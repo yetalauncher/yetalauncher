@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 afire = "2.2.1"
 chrono = { version = "0.4.33", features = ["serde"] }
+clone-macro = "0.1.0"
 dirs = "5.0.1"
 fastrand = "2.0.1"
 jars = "0.1.1"
