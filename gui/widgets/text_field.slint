@@ -1,0 +1,28 @@
+import { Palette } from "../globals.slint";
+
+export component TextField inherits HorizontalLayout {
+    in-out property <string> value;
+    in property <string> label;
+    in property <string> unit: "";
+
+    callback edited();
+
+    Text { text: label + ": "; }
+    Rectangle {
+        background: Palette.bg-tertiary;
+        border-radius: 4px;
+
+        input := TextInput {
+            x: 4px;
+            y: 2px;
+            text: value;
+            edited => { root.value = self.text; edited(); }
+        }
+        
+        Text {
+            x: parent.width - self.width - 8px;
+            text: unit;
+            color: #96969696;
+        }
+    }
+}

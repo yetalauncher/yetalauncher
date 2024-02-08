@@ -3,9 +3,9 @@ use std::sync::{Arc, RwLock};
 use log::*;
 use rfd::AsyncFileDialog;
 use simple_logger::SimpleLogger;
-use slint::{spawn_local, PlatformError};
+use slint::{spawn_local, Model, PlatformError};
 
-use crate::app::settings::AppSettings;
+use crate::{app::settings::AppSettings, launcher::java::JavaDetails};
 
 slint::include_modules!();
 pub use slint_generatedMainWindow::*;
@@ -35,14 +35,15 @@ pub struct YetaLauncher {
 
 impl YetaLauncher {
     async fn run(self) -> Result<(), PlatformError> {
-        let window = MainWindow::new()?;
-        let window_ref = Arc::new(window);
+        let window = Arc::new(MainWindow::new()?);
         let app_ref = Arc::new(RwLock::new(self));
 
-        window_ref.global::<Settings>().set_settings(app_ref.read().unwrap().settings.to_slint());
+        let settings = window.global::<Settings>();
 
-        let (window2, app2) = (window_ref.clone(), app_ref.clone());
-        window_ref.global::<Settings>().on_update_instance_path(move || {
+        settings.set_settings(app_ref.read().unwrap().settings.to_slint());
+
+        let (window2, app2) = (window.clone(), app_ref.clone());
+        settings.on_update_instance_path(move || {
             let (window2, app2) = (window2.clone(), app2.clone());
             spawn_local(async move {
                 debug!("Opening folder picker...");
@@ -57,8 +58,8 @@ impl YetaLauncher {
             }).unwrap();
         });
 
-        let (window2, app2) = (window_ref.clone(), app_ref.clone());
-        window_ref.global::<Settings>().on_update_icon_path(move || {
+        let (window2, app2) = (window.clone(), app_ref.clone());
+        settings.on_update_icon_path(move || {
             let (window2, app2) = (window2.clone(), app2.clone());
             spawn_local(async move {
                 debug!("Opening folder picker...");
@@ -73,8 +74,30 @@ impl YetaLauncher {
             }).unwrap();
         });
 
+        let (window2, app2) = (window.clone(), app_ref.clone());
+        settings.on_add_java_setting(move || {
+            let mut app = app2.write().unwrap();
+            app.settings.java_settings.push(JavaDetails::default());
+            window2.global::<Settings>().set_settings(
+                app.settings.to_slint()
+            );
+        });
+
+        let (window2, app2) = (window.clone(), app_ref.clone());
+        settings.on_save_settings(move || {
+            let mut app = app2.write().unwrap();
+            let new_settings = window2.global::<Settings>().get_settings();
+
+            app.settings.java_settings = new_settings.java_settings
+            .iter()
+            .map(|java_setting| JavaDetails::from_slint(java_setting))
+            .collect();
+
+            app.settings.set();
+        });
+
         info!("Starting...");
-        window_ref.run()?;
+        window.run()?;
         Ok(())
     }
 

@@ -2,7 +2,7 @@ use std::process::Command;
 
 use log::{*};
 use serde::{Deserialize, Serialize};
-use slint::ModelRc;
+use slint::{Model, ModelRc};
 
 use super::launching::mc_structs::MCVersionDetails;
 
@@ -61,6 +61,18 @@ impl JavaDetails {
             minecraft_versions: self.minecraft_versions.to_slint()
         }
     }
+
+    pub fn from_slint(slint: SlJavaDetails) -> Self {
+        Self {
+            path: slint.path.into(),
+            label: slint.label.into(),
+            version: slint.version.into(),
+            minecraft_versions: JavaMCRange::from_slint(slint.minecraft_versions),
+            xmx: slint.xmx.try_into().unwrap_or(0),
+            xms: slint.xms.try_into().unwrap_or(0),
+            args: slint.args.into(),
+        }
+    }
 }
 
 impl JavaMCRange {
@@ -71,5 +83,34 @@ impl JavaMCRange {
             SlintOption::from(self.min.as_ref().map(|details| details.to_slint())).into(),
             self.min.is_some()
         )
+    }
+
+    pub fn from_slint(slint: (ModelRc<SlMCVersionDetails>, bool, ModelRc<SlMCVersionDetails>, bool)) -> Self {
+        Self {
+            min: if slint.1 {
+                Some(
+                    MCVersionDetails::from_slint(slint.0.iter().next().expect("ModelRc was empty!"))
+                )
+            } else { None },
+            max: if slint.3 {
+                Some(
+                    MCVersionDetails::from_slint(slint.2.iter().next().expect("ModelRc was empty!"))
+                )
+            } else { None },
+        }
+    }
+}
+
+impl Default for JavaDetails {
+    fn default() -> Self {
+        Self {
+            path: String::from(""),
+            label: String::from(""),
+            version: String::from(""),
+            minecraft_versions: JavaMCRange { min: None, max: None },
+            xmx: 4096,
+            xms: 2048,
+            args: String::from(""),
+        }
     }
 }

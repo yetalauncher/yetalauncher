@@ -51,6 +51,18 @@ impl MCVersionDetails {
             url: self.url.to_string().into()
         }
     }
+
+    pub fn from_slint(slint: SlMCVersionDetails) -> Self {
+        Self {
+            id: slint.id.into(),
+            typ: slint.typ.into(),
+            url: slint.url.into(),
+            time: slint.time.into(),
+            release_time: slint.release_time.into(),
+            sha1: slint.sha1.into(),
+            compliance_level: slint.compliance_level as u32,
+        }
+    }
 }
 
 impl MCVersionManifest {

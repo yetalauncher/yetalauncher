@@ -1,6 +1,7 @@
 import { Settings, Palette } from "../globals.slint";
-import { VerticalBox } from "std-widgets.slint";
+import { VerticalBox, Button, HorizontalBox, TextEdit } from "std-widgets.slint";
 import { SettingsContainer } from "../widgets/settings_container.slint";
+import { TextField } from "../widgets/text_field.slint";
 
 
 export component SettingsPage inherits VerticalLayout {
@@ -8,14 +9,96 @@ export component SettingsPage inherits VerticalLayout {
     spacing: 10px;
 
     SettingsContainer {
-        header: "Instance Path";
+        header: "Path of Instance Directory";
         text: Settings.settings.instance-path-set ? Settings.settings.instance-path[0] : "Click to set!";
         clicked => { Settings.update-instance-path(); }
     }
 
     SettingsContainer {
-        header: "Icon Path";
+        header: "Path of Icon Directory";
         text: Settings.settings.icon-path-set ? Settings.settings.icon-path[0] : "Click to set!";
         clicked => { Settings.update-icon-path(); }
+    }
+
+    Rectangle {
+        background: Palette.bg-secondary;
+        border-color: base_area.has-hover || add-area.has-hover || save-area.has-hover ? Palette.primary : Palette.bg-tertiary;
+        border-radius: 8px;
+        border-width: 1px;
+        height: content.preferred-height + 32px;
+
+        VerticalLayout {
+            padding-top: 4px;
+
+            Text {
+                x: 8px;
+                font-weight: 700;
+                font-size: 18px;
+                text: "Java Versions";
+            }
+            
+            content := VerticalBox {
+                for java[i] in Settings.settings.java-settings: Rectangle {
+                    background: Palette.bg-tertiary;
+                    border-radius: 6px;
+
+                    VerticalLayout {
+                        Text {
+                            text: java.label;
+                            font-weight: 600;
+                        }
+
+                        TextField {
+                            label: "Label";
+                            value: java.label;
+                            edited => { java.label = self.value; }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    background: Palette.bg-tertiary;
+                    border-radius: 6px;
+
+                    HorizontalBox {
+                        Image {
+                            height: 24px;
+                            width: 24px;
+                            source: @image-url("../../resources/tabler-icons/plus.svg");
+                            colorize: Palette.text;
+                        }
+                        Text { text: "Add..."; }
+                    }
+                    add_area := TouchArea {
+                        z: 1;
+                        mouse-cursor: pointer;
+                        clicked => { Settings.add-java-setting(); }
+                    }
+                }
+            }
+
+        }
+
+        Rectangle {
+            background: Palette.primary;
+            x: parent.x + parent.width - 78px;
+            y: 4px;
+            width: 64px;
+            height: 28px;
+            border-radius: 6px;
+
+            Text { text: "Save"; }
+
+            save_area := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { Settings.save-settings(); }
+            }
+        }
+
+        base_area := TouchArea { z: -1; }
+
+        animate border-color {
+            duration: 150ms;
+        }
     }
 }
