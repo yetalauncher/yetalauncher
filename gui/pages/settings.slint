@@ -39,19 +39,56 @@ export component SettingsPage inherits VerticalLayout {
             
             content := VerticalBox {
                 for java[i] in Settings.settings.java-settings: Rectangle {
-                    background: Palette.bg-tertiary;
+                    background: Palette.bg-secondary;
                     border-radius: 6px;
 
                     VerticalLayout {
+                        padding: 4px;
+
                         Text {
-                            text: java.label;
-                            font-weight: 600;
+                            text: java.label == "" ? "<unnamed>" : java.label;
+                            font-weight: 700;
+                            font-size: 18px;
                         }
 
-                        TextField {
-                            label: "Label";
-                            value: java.label;
-                            edited => { java.label = self.value; }
+                        VerticalLayout {
+                            padding: 4px;
+                            spacing: 4px;
+
+                            TextField {
+                                label: "Label";
+                                value: java.label;
+                                edited => { java.label = self.value; }
+                            }
+
+                            Rectangle {
+                                HorizontalLayout {
+                                    Text { width: self.preferred-width; text: "Path: "; }
+                                    Rectangle {
+                                        background: Palette.bg-tertiary;
+                                        border-radius: 4px;
+
+                                        Text { x: 4px; text: java.path == "" ? "Click to set!" : java.path; }
+                                    }
+                                }
+
+                                path_area := TouchArea {
+                                    mouse-cursor: pointer;
+                                    private property <[string]> path;
+                                    clicked => {
+                                        path = Settings.update-java-path();
+                                        if path.length == 1 {
+                                            java.path = path[0]
+                                        }
+                                    }
+                                }
+                            }
+
+                            TextField {
+                                label: "Additional Arguments";
+                                value: java.args;
+                                edited => { java.args = self.value; }
+                            }
                         }
                     }
                 }

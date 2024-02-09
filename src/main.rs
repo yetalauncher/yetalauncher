@@ -1,12 +1,13 @@
-use std::sync::{Arc, RwLock};
+use std::{future::IntoFuture, sync::{Arc, RwLock}};
 
 use log::*;
 use rfd::AsyncFileDialog;
 use simple_logger::SimpleLogger;
-use slint::{spawn_local, Model, PlatformError};
+use slint::{invoke_from_event_loop, spawn_local, Model, PlatformError};
 use clone_macro::clone;
+use tokio::runtime::Runtime;
 
-use crate::{app::settings::AppSettings, launcher::java::JavaDetails};
+use crate::{app::{settings::AppSettings, slint_utils::SlintOption}, launcher::java::JavaDetails};
 
 slint::include_modules!();
 pub use slint_generatedMainWindow::*;
@@ -15,8 +16,7 @@ pub mod app;
 pub mod ui;
 pub mod launcher;
 
-#[tokio::main]
-async fn main() {
+fn main() {
     println!("Initializing YetaLauncher...");
     SimpleLogger::new()
     .with_level(log::LevelFilter::Debug)
@@ -26,7 +26,8 @@ async fn main() {
 
     let app = YetaLauncher::new();
 
-    app.run().await.expect("YetaLauncher failed to start!");
+    app.run().expect("YetaLauncher failed to start!");
+
 }
 
 #[derive(Debug)]
@@ -35,19 +36,21 @@ pub struct YetaLauncher {
 }
 
 impl YetaLauncher {
-    async fn run(self) -> Result<(), PlatformError> {
+    fn run(self) -> Result<(), PlatformError> {
         let window = Arc::new(MainWindow::new()?);
         let app = Arc::new(RwLock::new(self));
+        let runtime = Runtime::new().unwrap();
+        let rt = runtime.handle().clone();
 
         let settings = window.global::<Settings>();
 
         settings.set_settings(app.read().unwrap().settings.to_slint());
 
-        settings.on_update_instance_path(clone!([window, app], move || {
-            spawn_local(clone!([window, app], async move {
+        settings.on_update_instance_path(clone!([window, app, rt], move || {
+            spawn_local(clone!([window, app, rt], async move {
+                let _guard = rt.enter();
                 debug!("Opening folder picker...");
-                
-                if let Some(folder) = AsyncFileDialog::new().pick_folder().await {
+                if let Some(folder) = AsyncFileDialog::new().set_title("Select Instance folder").pick_folder().await {
                     let mut app = app.write().unwrap();
     
                     app.settings.instance_path = Some(folder.path().to_str().expect("Failed to convert folder path to valid UTF-8!").to_string());
@@ -57,11 +60,12 @@ impl YetaLauncher {
             })).unwrap();
         }));
 
-        settings.on_update_icon_path(clone!([window, app], move || {
-            spawn_local(clone!([window, app], async move {
+        settings.on_update_icon_path(clone!([window, app, rt], move || {
+            spawn_local(clone!([window, app, rt], async move {
+                let _guard = rt.enter();
                 debug!("Opening folder picker...");
                 
-                if let Some(folder) = AsyncFileDialog::new().pick_folder().await {
+                if let Some(folder) = AsyncFileDialog::new().set_title("Select Icon folder").pick_folder().await {
                     let mut app = app.write().unwrap();
     
                     app.settings.icon_path = Some(folder.path().to_str().expect("Failed to convert folder path to valid UTF-8!").to_string());
@@ -87,6 +91,18 @@ impl YetaLauncher {
             .collect();
 
             app.settings.set();
+        }));
+
+        settings.on_update_java_path(clone!([rt], move || {
+            let picker = rt.block_on(async move {
+                AsyncFileDialog::new().set_title("Select Java binary").pick_file().await
+            });
+            
+            if let Some(file) = picker {
+                SlintOption::Some(file.path().to_str().expect("Failed to convert file path to valid UTF-8!").to_string()).into()
+            } else {
+                SlintOption::None::<&str>.into()
+            }
         }));
 
         info!("Starting...");
