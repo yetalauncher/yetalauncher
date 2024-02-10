@@ -40,15 +40,15 @@ impl MCVersionDetails {
         }
     }
 
+
+}
+
+impl MCSimpleVersion {
     pub fn to_slint(&self) -> SlMCVersionDetails {
         SlMCVersionDetails {
-            compliance_level: self.compliance_level as i32,
             id: self.id.to_string().into(),
             release_time: self.release_time.to_string().into(),
-            sha1: self.sha1.to_string().into(),
-            time: self.time.to_string().into(),
-            typ: self.typ.to_string().into(),
-            url: self.url.to_string().into()
+            typ: self.typ.to_string().into()
         }
     }
 
@@ -56,11 +56,7 @@ impl MCVersionDetails {
         Self {
             id: slint.id.into(),
             typ: slint.typ.into(),
-            url: slint.url.into(),
-            time: slint.time.into(),
-            release_time: slint.release_time.into(),
-            sha1: slint.sha1.into(),
-            compliance_level: slint.compliance_level as u32,
+            release_time: slint.release_time.into()
         }
     }
 }

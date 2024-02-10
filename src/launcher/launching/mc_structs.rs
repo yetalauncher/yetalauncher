@@ -24,6 +24,14 @@ pub struct MCVersionDetails {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct MCSimpleVersion {
+    pub id: String,
+    #[serde(rename = "type")]
+    pub typ: String,
+    pub release_time: String
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct MCLatest {
     pub release: String,
     pub snapshot: String

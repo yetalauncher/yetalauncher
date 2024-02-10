@@ -4,7 +4,7 @@ use log::{*};
 use serde::{Deserialize, Serialize};
 use slint::{Model, ModelRc};
 
-use super::launching::mc_structs::MCVersionDetails;
+use super::launching::mc_structs::MCSimpleVersion;
 
 use crate::{app::slint_utils::SlintOption, slint_generatedMainWindow::*};
 
@@ -22,8 +22,8 @@ pub struct JavaDetails {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JavaMCRange {
-    min: Option<MCVersionDetails>,
-    max: Option<MCVersionDetails>
+    min: Option<MCSimpleVersion>,
+    max: Option<MCSimpleVersion>
 }
 
 pub fn get_java_version(path: String, args: String) -> Result<String, String> {
@@ -89,12 +89,12 @@ impl JavaMCRange {
         Self {
             min: if slint.1 {
                 Some(
-                    MCVersionDetails::from_slint(slint.0.iter().next().expect("ModelRc was empty!"))
+                    MCSimpleVersion::from_slint(slint.0.iter().next().expect("ModelRc was empty!"))
                 )
             } else { None },
             max: if slint.3 {
                 Some(
-                    MCVersionDetails::from_slint(slint.2.iter().next().expect("ModelRc was empty!"))
+                    MCSimpleVersion::from_slint(slint.2.iter().next().expect("ModelRc was empty!"))
                 )
             } else { None },
         }
