@@ -1,0 +1,43 @@
+import { Button, HorizontalBox } from "std-widgets.slint";
+import { Pages } from "../enums.slint";
+import { App, Palette } from "../globals.slint";
+
+export component IconButton inherits VerticalLayout {
+    in property <string> text;
+    in property <image> icon;
+    out property <bool> has-hover <=> area.has-hover;
+    callback clicked <=> area.clicked;
+
+    padding-left: 4px;
+    padding-right: 4px;
+
+    Rectangle { // Has to be a separate element because there's no margin property 
+        background: area.has-hover ? Palette.primary : Palette.bg-secondary;
+        preferred-height: 32px;
+        border-radius: 6px;
+        width: box.preferred-width;
+
+        area := TouchArea {
+            mouse-cursor: pointer;
+        }
+
+        box := HorizontalBox {
+            Image {
+                source: icon;
+                width: 24px;
+                height: 24px;
+                colorize: Palette.text;
+            }
+            Text {
+                text: text;
+                color: Palette.text;
+                overflow: TextOverflow.clip;
+            }
+        }
+        
+        animate background {
+            duration: 100ms;
+        }
+    }
+
+}

@@ -2,6 +2,7 @@ import { Settings, Palette } from "../globals.slint";
 import { VerticalBox, Button, HorizontalBox, TextEdit } from "std-widgets.slint";
 import { SettingsContainer } from "../widgets/settings_container.slint";
 import { TextField } from "../widgets/text_field.slint";
+import { IconButton } from "../widgets/icon_button.slint";
 
 
 export component SettingsPage inherits VerticalLayout {
@@ -22,7 +23,7 @@ export component SettingsPage inherits VerticalLayout {
 
     Rectangle {
         background: Palette.bg-secondary;
-        border-color: base_area.has-hover || add-area.has-hover || save-area.has-hover ? Palette.primary : Palette.bg-tertiary;
+        border-color: base_area.has-hover || add-area.has-hover || save-button.has-hover ? Palette.primary : Palette.bg-tertiary;
         border-radius: 8px;
         border-width: 1px;
         height: content.preferred-height + 32px;
@@ -116,21 +117,16 @@ export component SettingsPage inherits VerticalLayout {
 
         }
 
-        Rectangle {
-            background: Palette.primary;
-            x: parent.x + parent.width - 78px;
-            y: 4px;
-            width: 64px;
-            height: 28px;
-            border-radius: 6px;
+            save_button := IconButton {
+                x: parent.x + parent.width - 98px;
+                y: 4px;
+                width: 64px;
+                height: 28px;
 
-            Text { text: "Save"; }
-
-            save_area := TouchArea {
-                mouse-cursor: pointer;
+                text: "Save";
+                icon: @image-url("../../resources/tabler-icons/device-floppy.svg");
                 clicked => { Settings.save-settings(); }
             }
-        }
 
         base_area := TouchArea { z: -1; }
 

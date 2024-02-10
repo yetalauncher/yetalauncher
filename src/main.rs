@@ -1,9 +1,9 @@
-use std::{future::IntoFuture, sync::{Arc, RwLock}};
+use std::sync::{Arc, RwLock};
 
 use log::*;
 use rfd::AsyncFileDialog;
 use simple_logger::SimpleLogger;
-use slint::{invoke_from_event_loop, spawn_local, Model, PlatformError};
+use slint::{spawn_local, Model, PlatformError};
 use clone_macro::clone;
 use tokio::runtime::Runtime;
 
