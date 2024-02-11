@@ -5,6 +5,7 @@ import { App, Palette } from "../globals.slint";
 export component IconButton inherits VerticalLayout {
     in property <string> text;
     in property <image> icon;
+    in property <angle> rotation: 0;
     out property <bool> has-hover <=> area.has-hover;
     callback clicked <=> area.clicked;
 
@@ -27,6 +28,11 @@ export component IconButton inherits VerticalLayout {
                 width: 24px;
                 height: 24px;
                 colorize: Palette.text;
+                rotation-angle: rotation;
+
+                animate rotation-angle {
+                    duration: 150ms;
+                }
             }
             Text {
                 text: text;
@@ -39,5 +45,4 @@ export component IconButton inherits VerticalLayout {
             duration: 100ms;
         }
     }
-
 }

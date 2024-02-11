@@ -3,6 +3,7 @@ import { VerticalBox, Button, HorizontalBox, TextEdit } from "std-widgets.slint"
 import { SettingsContainer } from "../widgets/settings_container.slint";
 import { TextField } from "../widgets/text_field.slint";
 import { IconButton } from "../widgets/icon_button.slint";
+import { MinecraftPicker } from "../widgets/minecraft_picker.slint";
 
 
 export component SettingsPage inherits VerticalLayout {
@@ -90,6 +91,42 @@ export component SettingsPage inherits VerticalLayout {
                                 value: java.args;
                                 edited => { java.args = self.value; }
                             }
+
+                            HorizontalLayout {
+                                Text {
+                                    y: 6px;
+                                    text: "Min version:";
+                                    width: 100px;
+                                }
+                                MinecraftPicker {
+                                    text: "Select";
+                                    preselected: java.minecraft-versions.min;
+
+                                    select => {
+                                        self.text = self.selected.id;
+                                        java.minecraft-versions.min = [self.selected];
+                                        java.minecraft-versions.min-set = true;
+                                    }
+                                }
+
+                            }
+                            HorizontalLayout {
+                                Text {
+                                    y: 6px;
+                                    text: "Max version:";
+                                    width: 100px;
+                                }
+                                MinecraftPicker {
+                                    text: "Select";
+                                    preselected: java.minecraft-versions.max;
+
+                                    select => {
+                                        self.text = self.selected.id;
+                                        java.minecraft-versions.max = [self.selected];
+                                        java.minecraft-versions.max-set = true;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -117,16 +154,15 @@ export component SettingsPage inherits VerticalLayout {
 
         }
 
-            save_button := IconButton {
-                x: parent.x + parent.width - 98px;
-                y: 4px;
-                width: 64px;
-                height: 28px;
-
-                text: "Save";
-                icon: @image-url("../../resources/tabler-icons/device-floppy.svg");
-                clicked => { Settings.save-settings(); }
-            }
+        save_button := IconButton {
+            x: parent.x + parent.width - 98px;
+            y: 4px;
+            width: 64px;
+            height: 28px;
+            text: "Save";
+            icon: @image-url("../../resources/tabler-icons/device-floppy.svg");
+            clicked => { Settings.save-settings(); }
+        }
 
         base_area := TouchArea { z: -1; }
 

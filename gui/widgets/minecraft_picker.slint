@@ -1,0 +1,90 @@
+import { IconButton } from "icon_button.slint";
+import { App, Palette, Settings } from "../globals.slint";
+import { CheckBox, ListView } from "std-widgets.slint";
+import { SlMCVersionDetails } from "../structs.slint";
+
+export component MinecraftPicker inherits VerticalLayout {
+    in property <string> text;
+    in property <[SlMCVersionDetails]> preselected;
+    out property <SlMCVersionDetails> selected;
+    private property <bool> expanded;
+    private property <bool> has-been-clicked;
+    private property <bool> loaded: Settings.version_list.length > 0;
+    callback select();
+
+    button := IconButton {
+        text: preselected.length == 1 ? preselected[0].id : text;
+        icon: @image-url("../../resources/tabler-icons/caret-right.svg");
+        rotation: expanded ? 90deg : 0;
+        clicked => {
+            expanded = !expanded;
+            if expanded && !has-been-clicked && Settings.version_list.length == 0 {
+                Settings.get-mc-versions()
+            }
+            has-been-clicked = true;
+        }
+    }
+
+    if expanded: Rectangle {
+        x: 4px; z: 20;
+        width: 200px;
+        height: 400px;
+        background: Palette.bg-tertiary;
+        border-radius: 6px;
+
+        VerticalLayout {
+            padding: 4px;
+
+            filter_release := CheckBox {
+                text: "Releases";
+                enabled: loaded;
+                checked: true;
+            }
+            filter_snapshot := CheckBox {
+                text: "Snapshots";
+                enabled: loaded;
+            }
+            filter_beta := CheckBox {
+                text: "Betas";
+                enabled: loaded;
+            }
+            filter_alpha := CheckBox {
+                text: "Alphas";
+                enabled: loaded;
+            }
+
+            if loaded: ListView {
+                
+                for version in Settings.version_list: Rectangle {
+                    private property <bool> view:
+                    (filter-release.checked && version.typ == "release") ||
+                    (filter-snapshot.checked && version.typ == "snapshot") ||
+                    (filter-beta.checked && version.typ == "old_beta") ||
+                    (filter-alpha.checked && version.typ == "old_alpha");
+                    height: view ? 20px : 0;
+                    background: Palette.bg-tertiary;
+
+                    if view: Rectangle {
+                        background: area.has-hover ? Palette.primary : Palette.bg-tertiary;
+                        border-radius: 4px;
+
+                        Text {
+                            text: version.id;
+                        }
+                        area := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                selected = version;
+                                expanded = false;
+                                select();
+                            }
+                        }
+                    }
+                }
+            }
+            if !loaded: Text {
+                text: "Loading...";
+            }
+        }
+    }
+}

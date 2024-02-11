@@ -40,7 +40,13 @@ impl MCVersionDetails {
         }
     }
 
-
+    pub fn to_simple(self) -> MCSimpleVersion {
+        MCSimpleVersion {
+            id: self.id,
+            typ: self.typ,
+            release_time: self.release_time,
+        }
+    }
 }
 
 impl MCSimpleVersion {

@@ -78,8 +78,8 @@ impl JavaDetails {
 impl JavaMCRange {
     pub fn to_slint(&self) -> (ModelRc<SlMCVersionDetails>, bool, ModelRc<SlMCVersionDetails>, bool) {
         (
-            SlintOption::from(self.min.as_ref().map(|details| details.to_slint())).into(),
-            self.min.is_some(),
+            SlintOption::from(self.max.as_ref().map(|details| details.to_slint())).into(),
+            self.max.is_some(),
             SlintOption::from(self.min.as_ref().map(|details| details.to_slint())).into(),
             self.min.is_some()
         )
@@ -87,12 +87,12 @@ impl JavaMCRange {
 
     pub fn from_slint(slint: (ModelRc<SlMCVersionDetails>, bool, ModelRc<SlMCVersionDetails>, bool)) -> Self {
         Self {
-            min: if slint.1 {
+            max: if slint.1 {
                 Some(
                     MCSimpleVersion::from_slint(slint.0.iter().next().expect("ModelRc was empty!"))
                 )
             } else { None },
-            max: if slint.3 {
+            min: if slint.3 {
                 Some(
                     MCSimpleVersion::from_slint(slint.2.iter().next().expect("ModelRc was empty!"))
                 )

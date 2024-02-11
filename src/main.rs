@@ -1,13 +1,14 @@
 use std::sync::{Arc, RwLock};
 
 use log::*;
+use reqwest::Client;
 use rfd::AsyncFileDialog;
 use simple_logger::SimpleLogger;
-use slint::{spawn_local, Model, PlatformError};
+use slint::{spawn_local, Model, ModelRc, PlatformError, VecModel};
 use clone_macro::clone;
 use tokio::runtime::Runtime;
 
-use crate::{app::{settings::AppSettings, slint_utils::SlintOption}, launcher::java::JavaDetails};
+use crate::{app::{settings::AppSettings, slint_utils::SlintOption}, launcher::{java::JavaDetails, launching::mc_structs::{MCSimpleVersion, MCVersionDetails, MCVersionList}}};
 
 slint::include_modules!();
 pub use slint_generatedMainWindow::*;
@@ -104,6 +105,29 @@ impl YetaLauncher {
                 SlintOption::None::<&str>.into()
             }
         }));
+
+
+        settings.on_get_mc_versions(clone!([window, rt], move || {
+            spawn_local(clone!([window, rt], async move {
+                let _guard = rt.enter();
+                let client = Client::new();
+
+                if let Some(list) = MCVersionList::get(&client).await {
+                    window.global::<Settings>().set_version_list(
+                        ModelRc::new(
+                            VecModel::from(
+                                list.versions
+                                .into_iter()
+                                .map(MCVersionDetails::to_simple)
+                                .map(|versions: MCSimpleVersion| MCSimpleVersion::to_slint(&versions))
+                                .collect::<Vec<SlMCVersionDetails>>()
+                            )
+                        )
+                    );
+                }
+            })).unwrap();
+        }));
+
 
         info!("Starting...");
         window.run()?;

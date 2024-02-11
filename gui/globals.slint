@@ -1,5 +1,5 @@
 import { Pages } from "enums.slint";
-import { SlSettings } from "structs.slint";
+import { SlSettings, SlMCVersionDetails } from "structs.slint";
 
 export global App {
     in-out property <Pages> page;
@@ -13,12 +13,15 @@ export global App {
 
 export global Settings {
     in-out property <SlSettings> settings;
+    in-out property <[SlMCVersionDetails]> version_list;
 
     callback update-instance-path();
     callback update-icon-path();
     callback add-java-setting();
     callback save-settings();
     callback update-java-path() -> [string];
+
+    callback get-mc-versions();
 }
 
 export global Palette {
