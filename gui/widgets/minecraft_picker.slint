@@ -16,7 +16,9 @@ export component MinecraftPicker inherits VerticalLayout {
         text: preselected.length == 1 ? preselected[0].id : text;
         icon: @image-url("../../resources/tabler-icons/caret-right.svg");
         rotation: expanded ? 90deg : 0;
+
         clicked => {
+            popup.show();
             expanded = !expanded;
             if expanded && !has-been-clicked && Settings.version_list.length == 0 {
                 Settings.get-mc-versions()
@@ -25,65 +27,86 @@ export component MinecraftPicker inherits VerticalLayout {
         }
     }
 
-    if expanded: Rectangle {
-        x: 4px; z: 20;
-        width: 200px;
-        height: 400px;
-        background: Palette.bg-tertiary;
-        border-radius: 6px;
+    popup := PopupWindow {
+        x: 4px; y: 32px; z: 2;
+        width: 200px; height: 400px;
+        close-on-click: false;
 
-        VerticalLayout {
-            padding: 4px;
+        Rectangle {
+            background: Palette.bg-tertiary;
+            border-radius: 6px;
 
-            filter_release := CheckBox {
-                text: "Releases";
-                enabled: loaded;
-                checked: true;
+            Rectangle {
+                x: parent.width - 20px; y: 6px; z: 3;
+                width: 12px; height: 12px;
+
+                Image {
+                    source: @image-url("../../resources/tabler-icons/x.svg");
+                    colorize: close-area.has-hover ? #9999 : #8888;
+                }
+                close_area := TouchArea {
+                    mouse-cursor: pointer;
+
+                    clicked => {
+                        expanded = false;
+                        popup.close();
+                    }
+                }
             }
-            filter_snapshot := CheckBox {
-                text: "Snapshots";
-                enabled: loaded;
-            }
-            filter_beta := CheckBox {
-                text: "Betas";
-                enabled: loaded;
-            }
-            filter_alpha := CheckBox {
-                text: "Alphas";
-                enabled: loaded;
-            }
-
-            if loaded: ListView {
-                
-                for version in Settings.version_list: Rectangle {
-                    private property <bool> view:
-                    (filter-release.checked && version.typ == "release") ||
-                    (filter-snapshot.checked && version.typ == "snapshot") ||
-                    (filter-beta.checked && version.typ == "old_beta") ||
-                    (filter-alpha.checked && version.typ == "old_alpha");
-                    height: view ? 20px : 0;
-                    background: Palette.bg-tertiary;
-
-                    if view: Rectangle {
-                        background: area.has-hover ? Palette.primary : Palette.bg-tertiary;
-                        border-radius: 4px;
-
-                        Text {
-                            text: version.id;
-                        }
-                        area := TouchArea {
-                            mouse-cursor: pointer;
-                            clicked => {
-                                selected = version;
-                                expanded = false;
-                                select();
+    
+            VerticalLayout {
+                padding: 4px;
+    
+                filter_release := CheckBox {
+                    text: "Releases";
+                    enabled: loaded;
+                    checked: true;
+                }
+                filter_snapshot := CheckBox {
+                    text: "Snapshots";
+                    enabled: loaded;
+                }
+                filter_beta := CheckBox {
+                    text: "Betas";
+                    enabled: loaded;
+                }
+                filter_alpha := CheckBox {
+                    text: "Alphas";
+                    enabled: loaded;
+                }
+    
+                if loaded: ListView {
+                    for version in Settings.version_list: Rectangle {
+                        private property <bool> view:
+                        (filter-release.checked && version.typ == "release") ||
+                        (filter-snapshot.checked && version.typ == "snapshot") ||
+                        (filter-beta.checked && version.typ == "old_beta") ||
+                        (filter-alpha.checked && version.typ == "old_alpha");
+                        height: view ? 20px : 0;
+                        background: Palette.bg-tertiary;
+    
+                        if view: Rectangle {
+                            background: area.has-hover ? Palette.primary : Palette.bg-tertiary;
+                            border-radius: 4px;
+    
+                            Text {
+                                text: version.id;
+                            }
+                            area := TouchArea {
+                                mouse-cursor: pointer;
+                                clicked => {
+                                    selected = version;
+                                    expanded = false;
+                                    select();
+                                    popup.close();
+                                }
                             }
                         }
                     }
                 }
-            }
-            if !loaded: Text {
-                text: "Loading...";
+                if !loaded: Text {
+                    text: "Loading...";
+                }
             }
         }
     }
