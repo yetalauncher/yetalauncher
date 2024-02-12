@@ -8,7 +8,7 @@ use slint::{spawn_local, Model, ModelRc, PlatformError, VecModel};
 use clone_macro::clone;
 use tokio::runtime::Runtime;
 
-use crate::{app::{settings::AppSettings, slint_utils::SlintOption}, launcher::{java::JavaDetails, launching::mc_structs::{MCSimpleVersion, MCVersionDetails, MCVersionList}}};
+use crate::{app::{settings::AppSettings, slint_utils::SlintOption}, launcher::{java::{get_java_version, JavaDetails}, launching::mc_structs::{MCSimpleVersion, MCVersionDetails, MCVersionList}}};
 
 slint::include_modules!();
 pub use slint_generatedMainWindow::*;
@@ -103,6 +103,19 @@ impl YetaLauncher {
                 SlintOption::Some(file.path().to_str().expect("Failed to convert file path to valid UTF-8!").to_string()).into()
             } else {
                 SlintOption::None::<&str>.into()
+            }
+        }));
+
+        settings.on_test_java(clone!([], move |path, args| {
+            let result = get_java_version(path.to_string(), args.to_string());
+
+            match result {
+                Ok(ver) => ModelRc::new(
+                    VecModel::from(vec![
+                        ver.replace('"', "").split_whitespace().nth(2).unwrap_or("Could not detect").into()
+                    ])
+                ),
+                Err(_) => SlintOption::<String>::None.into()
             }
         }));
 

@@ -78,10 +78,44 @@ export component SettingsPage inherits VerticalLayout {
                                 path_area := TouchArea {
                                     mouse-cursor: pointer;
                                     private property <[string]> path;
+                                    private property <[string]> version;
                                     clicked => {
                                         path = Settings.update-java-path();
                                         if path.length == 1 {
-                                            java.path = path[0]
+                                            java.path = path[0];
+                                            version = Settings.test-java(java.path, java.args);
+                                            if version.length == 1 {
+                                                java.version = version[0];
+                                            }
+                                            if version.length != 1 {
+                                                java.version = "Test failed! Fix path / RAM allocation / Arguments and click to rerun test";
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                HorizontalLayout {
+                                    Text { width: self.preferred-width; text: "Version: "; }
+                                    Rectangle {
+                                        background: Palette.bg-tertiary;
+                                        border-radius: 4px;
+
+                                        Text { x: 4px; text: java.version == "" ? "Click to run test!" : java.version; }
+                                    }
+                                }
+
+                                version_area := TouchArea {
+                                    mouse-cursor: pointer;
+                                    private property <[string]> version;
+                                    clicked => {
+                                        version = Settings.test-java(java.path, java.args);
+                                        if version.length == 1 {
+                                            java.version = version[0];
+                                        }
+                                        if version.length != 1 {
+                                            java.version = "Test failed! Fix path / RAM allocation / Arguments and click to rerun test";
                                         }
                                     }
                                 }

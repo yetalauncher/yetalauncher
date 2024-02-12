@@ -20,6 +20,7 @@ export global Settings {
     callback add-java-setting();
     callback save-settings();
     callback update-java-path() -> [string];
+    callback test-java(string, string) -> [string];
 
     callback get-mc-versions();
 }
