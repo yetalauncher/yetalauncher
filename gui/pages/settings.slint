@@ -56,7 +56,7 @@ export component SettingsPage inherits VerticalLayout {
 
                         VerticalLayout {
                             padding: 4px;
-                            spacing: 4px;
+                            spacing: 10px;
 
                             TextField {
                                 label: "Label";
@@ -115,38 +115,42 @@ export component SettingsPage inherits VerticalLayout {
                                 edited => { java.args = self.value; }
                             }
 
-                            HorizontalLayout {
-                                Text {
-                                    y: 6px;
-                                    text: "Min version:";
-                                    width: 100px;
-                                }
-                                MinecraftPicker {
-                                    text: "Select";
-                                    preselected: java.minecraft-versions.min;
+                            VerticalLayout {
+                                padding-top: -6px;
 
-                                    select => {
-                                        self.text = self.selected.id;
-                                        java.minecraft-versions.min = [self.selected];
-                                        java.minecraft-versions.min-set = true;
+                                HorizontalLayout {
+                                    Text {
+                                        y: 6px;
+                                        text: "Min version:";
+                                        width: 100px;
                                     }
+                                    MinecraftPicker {
+                                        text: "Select";
+                                        preselected: java.minecraft-versions.min;
+    
+                                        select => {
+                                            self.text = self.selected.id;
+                                            java.minecraft-versions.min = [self.selected];
+                                            java.minecraft-versions.min-set = true;
+                                        }
+                                    }
+    
                                 }
-
-                            }
-                            HorizontalLayout {
-                                Text {
-                                    y: 6px;
-                                    text: "Max version:";
-                                    width: 100px;
-                                }
-                                MinecraftPicker {
-                                    text: "Select";
-                                    preselected: java.minecraft-versions.max;
-
-                                    select => {
-                                        self.text = self.selected.id;
-                                        java.minecraft-versions.max = [self.selected];
-                                        java.minecraft-versions.max-set = true;
+                                HorizontalLayout {
+                                    Text {
+                                        y: 6px;
+                                        text: "Max version:";
+                                        width: 100px;
+                                    }
+                                    MinecraftPicker {
+                                        text: "Select";
+                                        preselected: java.minecraft-versions.max;
+    
+                                        select => {
+                                            self.text = self.selected.id;
+                                            java.minecraft-versions.max = [self.selected];
+                                            java.minecraft-versions.max-set = true;
+                                        }
                                     }
                                 }
                             }
