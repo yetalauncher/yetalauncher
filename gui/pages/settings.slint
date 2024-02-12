@@ -1,5 +1,5 @@
 import { Settings, Palette } from "../globals.slint";
-import { VerticalBox, Button, HorizontalBox, TextEdit } from "std-widgets.slint";
+import { VerticalBox, Button, HorizontalBox, TextEdit, ScrollView } from "std-widgets.slint";
 import { SettingsContainer } from "../widgets/settings_container.slint";
 import { TextField } from "../widgets/text_field.slint";
 import { IconButton } from "../widgets/icon_button.slint";
@@ -7,82 +7,110 @@ import { MinecraftPicker } from "../widgets/minecraft_picker.slint";
 import { NumberInput } from "../widgets/number_input.slint";
 
 
-export component SettingsPage inherits VerticalLayout {
-    padding: 10px;
-    spacing: 10px;
+export component SettingsPage inherits ScrollView {
+    VerticalLayout {
+        padding: 10px;
+        spacing: 10px;
 
-    SettingsContainer {
-        header: "Path of Instance Directory";
-        text: Settings.settings.instance-path-set ? Settings.settings.instance-path[0] : "Click to set!";
-        clicked => { Settings.update-instance-path(); }
-    }
-
-    SettingsContainer {
-        header: "Path of Icon Directory";
-        text: Settings.settings.icon-path-set ? Settings.settings.icon-path[0] : "Click to set!";
-        clicked => { Settings.update-icon-path(); }
-    }
-
-    Rectangle {
-        background: Palette.bg-secondary;
-        border-color: base_area.has-hover || add-area.has-hover || save-button.has-hover ? Palette.primary : Palette.bg-tertiary;
-        border-radius: 8px;
-        border-width: 1px;
-        height: content.preferred-height + 32px;
-
-        VerticalLayout {
-            padding-top: 4px;
-
-            Text {
-                x: 8px;
-                font-weight: 700;
-                font-size: 18px;
-                text: "Java Versions";
-            }
-            
-            content := VerticalBox {
-                for java[i] in Settings.settings.java-settings: Rectangle {
-                    background: Palette.bg-secondary;
-                    border-radius: 6px;
-
-                    VerticalLayout {
-                        padding: 4px;
-
-                        Text {
-                            text: java.label == "" ? "<unnamed>" : java.label;
-                            font-weight: 700;
-                            font-size: 18px;
-                        }
-
+        SettingsContainer {
+            header: "Path of Instance Directory";
+            text: Settings.settings.instance-path-set ? Settings.settings.instance-path[0] : "Click to set!";
+            clicked => { Settings.update-instance-path(); }
+        }
+    
+        SettingsContainer {
+            header: "Path of Icon Directory";
+            text: Settings.settings.icon-path-set ? Settings.settings.icon-path[0] : "Click to set!";
+            clicked => { Settings.update-icon-path(); }
+        }
+    
+        Rectangle {
+            background: Palette.bg-secondary;
+            border-color: base_area.has-hover || add-area.has-hover || save-button.has-hover ? Palette.primary : Palette.bg-tertiary;
+            border-radius: 8px;
+            border-width: 1px;
+            height: content.preferred-height + 32px;
+    
+            VerticalLayout {
+                padding-top: 4px;
+    
+                Text {
+                    x: 8px;
+                    font-weight: 700;
+                    font-size: 18px;
+                    text: "Java Versions";
+                }
+                
+                content := VerticalBox {
+                    for java[i] in Settings.settings.java-settings: Rectangle {
+                        background: Palette.bg-secondary;
+                        border-radius: 6px;
+    
                         VerticalLayout {
                             padding: 4px;
-                            spacing: 10px;
-
-                            TextField {
-                                label: "Label";
-                                value: java.label;
-                                edited => { java.label = self.value; }
+    
+                            Text {
+                                text: java.label == "" ? "<unnamed>" : java.label;
+                                font-weight: 700;
+                                font-size: 18px;
                             }
-
-                            Rectangle {
-                                HorizontalLayout {
-                                    Text { width: self.preferred-width; text: "Path: "; }
-                                    Rectangle {
-                                        background: Palette.bg-tertiary;
-                                        border-radius: 4px;
-
-                                        Text { x: 4px; text: java.path == "" ? "Click to set!" : java.path; }
+    
+                            VerticalLayout {
+                                padding: 4px;
+                                spacing: 10px;
+    
+                                TextField {
+                                    label: "Label";
+                                    value: java.label;
+                                    edited => { java.label = self.value; }
+                                }
+    
+                                Rectangle {
+                                    HorizontalLayout {
+                                        Text { width: self.preferred-width; text: "Path: "; }
+                                        Rectangle {
+                                            background: Palette.bg-tertiary;
+                                            border-radius: 4px;
+    
+                                            Text { x: 4px; text: java.path == "" ? "Click to set!" : java.path; }
+                                        }
+                                    }
+    
+                                    path_area := TouchArea {
+                                        mouse-cursor: pointer;
+                                        private property <[string]> path;
+                                        private property <[string]> version;
+                                        clicked => {
+                                            path = Settings.update-java-path();
+                                            if path.length == 1 {
+                                                java.path = path[0];
+                                                version = Settings.test-java(java.path, java.args);
+                                                if version.length == 1 {
+                                                    java.version = version[0];
+                                                }
+                                                if version.length != 1 {
+                                                    java.version = "Test failed! Fix path / RAM allocation / Arguments and click to rerun test";
+                                                }
+                                            }
+                                        }
                                     }
                                 }
-
-                                path_area := TouchArea {
-                                    mouse-cursor: pointer;
-                                    private property <[string]> path;
-                                    private property <[string]> version;
-                                    clicked => {
-                                        path = Settings.update-java-path();
-                                        if path.length == 1 {
-                                            java.path = path[0];
+    
+                                Rectangle {
+                                    HorizontalLayout {
+                                        Text { width: self.preferred-width; text: "Version: "; }
+                                        Rectangle {
+                                            background: Palette.bg-tertiary;
+                                            border-radius: 4px;
+    
+                                            Text { x: 4px; text: java.version == "" ? "Click to run test!" : java.version; }
+                                        }
+                                    }
+    
+                                    version_area := TouchArea {
+                                        mouse-cursor: pointer;
+                                        private property <[string]> version;
+                                        clicked => {
                                             version = Settings.test-java(java.path, java.args);
                                             if version.length == 1 {
                                                 java.version = version[0];
@@ -93,142 +121,116 @@ export component SettingsPage inherits VerticalLayout {
                                         }
                                     }
                                 }
-                            }
-
-                            Rectangle {
-                                HorizontalLayout {
-                                    Text { width: self.preferred-width; text: "Version: "; }
-                                    Rectangle {
-                                        background: Palette.bg-tertiary;
-                                        border-radius: 4px;
-
-                                        Text { x: 4px; text: java.version == "" ? "Click to run test!" : java.version; }
-                                    }
-                                }
-
-                                version_area := TouchArea {
-                                    mouse-cursor: pointer;
-                                    private property <[string]> version;
-                                    clicked => {
-                                        version = Settings.test-java(java.path, java.args);
-                                        if version.length == 1 {
-                                            java.version = version[0];
-                                        }
-                                        if version.length != 1 {
-                                            java.version = "Test failed! Fix path / RAM allocation / Arguments and click to rerun test";
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            xmx_input := NumberInput {
-                                value: java.xmx;
-                                label: "Maximum RAM allocated";
-                                unit: "Mb";
-                                range: { min: 128, max: 8192 };
-                                step: 128;
-                                edited => {
-                                    java.xmx = self.value;
-
-                                    xms-input.value = self.value / 2;
-                                    java.xms = self.value / 2;
-                                }
-                            }
-                            xms_input := NumberInput {
-                                value: java.xms;
-                                label: "Minimum RAM allocated";
-                                unit: "Mb";
-                                range: { min: 128, max: 8192 };
-                                step: 128;
-                                edited => { java.xms = self.value; }
-                            }
-
-                            TextField {
-                                label: "Additional Arguments";
-                                value: java.args;
-                                edited => { java.args = self.value; }
-                            }
-
-                            VerticalLayout {
-                                padding-top: -6px;
-
-                                HorizontalLayout {
-                                    Text {
-                                        y: 6px;
-                                        text: "Min version:";
-                                        width: 100px;
-                                    }
-                                    MinecraftPicker {
-                                        text: "Select";
-                                        preselected: java.minecraft-versions.min;
+                                
+                                xmx_input := NumberInput {
+                                    value: java.xmx;
+                                    label: "Maximum RAM allocated";
+                                    unit: "Mb";
+                                    range: { min: 128, max: 8192 };
+                                    step: 128;
+                                    edited => {
+                                        java.xmx = self.value;
     
-                                        select => {
-                                            self.text = self.selected.id;
-                                            java.minecraft-versions.min = [self.selected];
-                                            java.minecraft-versions.min-set = true;
-                                        }
+                                        xms-input.value = self.value / 2;
+                                        java.xms = self.value / 2;
                                     }
-    
                                 }
-                                HorizontalLayout {
-                                    Text {
-                                        y: 6px;
-                                        text: "Max version:";
-                                        width: 100px;
-                                    }
-                                    MinecraftPicker {
-                                        text: "Select";
-                                        preselected: java.minecraft-versions.max;
+                                xms_input := NumberInput {
+                                    value: java.xms;
+                                    label: "Minimum RAM allocated";
+                                    unit: "Mb";
+                                    range: { min: 128, max: 8192 };
+                                    step: 128;
+                                    edited => { java.xms = self.value; }
+                                }
     
-                                        select => {
-                                            self.text = self.selected.id;
-                                            java.minecraft-versions.max = [self.selected];
-                                            java.minecraft-versions.max-set = true;
+                                TextField {
+                                    label: "Additional Arguments";
+                                    value: java.args;
+                                    edited => { java.args = self.value; }
+                                }
+    
+                                VerticalLayout {
+                                    padding-top: -6px;
+    
+                                    HorizontalLayout {
+                                        Text {
+                                            y: 6px;
+                                            text: "Min version:";
+                                            width: 100px;
+                                        }
+                                        MinecraftPicker {
+                                            text: "Select";
+                                            preselected: java.minecraft-versions.min;
+        
+                                            select => {
+                                                self.text = self.selected.id;
+                                                java.minecraft-versions.min = [self.selected];
+                                                java.minecraft-versions.min-set = true;
+                                            }
+                                        }
+        
+                                    }
+                                    HorizontalLayout {
+                                        Text {
+                                            y: 6px;
+                                            text: "Max version:";
+                                            width: 100px;
+                                        }
+                                        MinecraftPicker {
+                                            text: "Select";
+                                            preselected: java.minecraft-versions.max;
+        
+                                            select => {
+                                                self.text = self.selected.id;
+                                                java.minecraft-versions.max = [self.selected];
+                                                java.minecraft-versions.max-set = true;
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
                     }
-                }
-
-                Rectangle {
-                    background: Palette.bg-tertiary;
-                    border-radius: 6px;
-
-                    HorizontalBox {
-                        Image {
-                            height: 24px;
-                            width: 24px;
-                            source: @image-url("../../resources/tabler-icons/plus.svg");
-                            colorize: Palette.text;
+    
+                    Rectangle {
+                        background: Palette.bg-tertiary;
+                        border-radius: 6px;
+    
+                        HorizontalBox {
+                            Image {
+                                height: 24px;
+                                width: 24px;
+                                source: @image-url("../../resources/tabler-icons/plus.svg");
+                                colorize: Palette.text;
+                            }
+                            Text { text: "Add..."; }
                         }
-                        Text { text: "Add..."; }
-                    }
-                    add_area := TouchArea {
-                        z: 1;
-                        mouse-cursor: pointer;
-                        clicked => { Settings.add-java-setting(); }
+                        add_area := TouchArea {
+                            z: 1;
+                            mouse-cursor: pointer;
+                            clicked => { Settings.add-java-setting(); }
+                        }
                     }
                 }
+    
             }
-
-        }
-
-        save_button := IconButton {
-            x: parent.x + parent.width - 98px;
-            y: 4px;
-            width: 64px;
-            height: 28px;
-            text: "Save";
-            icon: @image-url("../../resources/tabler-icons/device-floppy.svg");
-            clicked => { Settings.save-settings(); }
-        }
-
-        base_area := TouchArea { z: -1; }
-
-        animate border-color {
-            duration: 150ms;
+    
+            save_button := IconButton {
+                x: parent.x + parent.width - 98px;
+                y: 4px;
+                width: 64px;
+                height: 28px;
+                text: "Save";
+                icon: @image-url("../../resources/tabler-icons/device-floppy.svg");
+                clicked => { Settings.save-settings(); }
+            }
+    
+            base_area := TouchArea { z: -1; }
+    
+            animate border-color {
+                duration: 150ms;
+            }
         }
     }
 }
