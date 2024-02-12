@@ -4,6 +4,7 @@ import { SettingsContainer } from "../widgets/settings_container.slint";
 import { TextField } from "../widgets/text_field.slint";
 import { IconButton } from "../widgets/icon_button.slint";
 import { MinecraftPicker } from "../widgets/minecraft_picker.slint";
+import { NumberInput } from "../widgets/number_input.slint";
 
 
 export component SettingsPage inherits VerticalLayout {
@@ -84,6 +85,28 @@ export component SettingsPage inherits VerticalLayout {
                                         }
                                     }
                                 }
+                            }
+                            
+                            xmx_input := NumberInput {
+                                value: java.xmx;
+                                label: "Maximum RAM allocated";
+                                unit: "Mb";
+                                range: { min: 128, max: 8192 };
+                                step: 128;
+                                edited => {
+                                    java.xmx = self.value;
+
+                                    xms-input.value = self.value / 2;
+                                    java.xms = self.value / 2;
+                                }
+                            }
+                            xms_input := NumberInput {
+                                value: java.xms;
+                                label: "Minimum RAM allocated";
+                                unit: "Mb";
+                                range: { min: 128, max: 8192 };
+                                step: 128;
+                                edited => { java.xms = self.value; }
                             }
 
                             TextField {

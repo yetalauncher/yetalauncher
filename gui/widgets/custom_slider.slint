@@ -1,0 +1,43 @@
+import { Palette } from "../globals.slint";
+
+export component CustomSlider inherits Rectangle {
+    in property <{min: int, max: int}> range: {min: 0, max: 100};
+    in property <int> step: 1;
+    in-out property<int> value;
+
+    callback edited(int);
+
+    background: Palette.bg-tertiary;
+    height: 8px;
+    border-radius: root.height/2;
+    y: 10px;
+
+    handle := Rectangle {
+        background: Palette.primary;
+        width: self.height;
+        height: 20px;
+        border-radius: self.height / 2;
+        x: (root.width - handle.width) * clamp(root.value - range.min, 0, range.max - range.min) / (range.max - range.min);
+    }
+    touch := TouchArea {
+        height: handle.height;
+        mouse-cursor: pointer;
+
+        pointer-event(event) => {
+            if (event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
+                value = max(range.min, min(range.max,
+                    self.pressed-x * (range.max - range.min) / root.width
+                ));
+                edited(value)
+            }
+        }
+        moved => {
+            if (self.enabled && self.pressed) {
+                value = clamp(round(
+                    self.mouse-x * (range.max - range.min) / root.width / step
+                ) * step, range.min, range.max);
+                edited(value)
+            }
+        }
+    }
+}

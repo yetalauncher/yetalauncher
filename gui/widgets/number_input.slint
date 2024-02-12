@@ -1,0 +1,47 @@
+import { Palette } from "../globals.slint";
+import { Slider } from "std-widgets.slint";
+import { CustomSlider } from "custom_slider.slint";
+
+export component NumberInput inherits HorizontalLayout {
+    in-out property <int> value;
+    in property <string> label;
+    in property <string> unit: "";
+    in property <{min: int, max: int}> range: {min: 0, max: 100};
+    in property <int> step: 1;
+
+    callback edited(int);
+
+    Text { text: label + ": "; }
+    CustomSlider {
+        range: range;
+        step: step;
+        value: root.value;
+
+        edited(val) => {
+            root.value = val;
+            edited(val);
+        }
+    }
+    Rectangle {
+        background: Palette.bg-tertiary;
+        border-radius: 4px;
+        width: 150px;
+
+        input := TextInput {
+            x: 4px;
+            y: 2px;
+            text: value;
+
+            edited => {
+                root.value = self.text.to-float();
+                edited(root.value);
+            }
+        }
+        
+        Text {
+            x: parent.width - self.width - 6px;
+            text: unit;
+            color: #96969696;
+        }
+    }
+}
