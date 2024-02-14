@@ -1,11 +1,12 @@
-use std::{path::PathBuf, cmp::Ordering};
+use std::{cmp::Ordering, path::PathBuf, sync::Arc};
 
+use clone_macro::clone;
 use tokio::{fs, task::JoinSet, time::Instant};
 use chrono::NaiveDateTime;
 use log::{*};
 use serde::{Deserialize, Serialize};
 
-use crate::app::settings::AppSettings;
+use crate::{app::{settings::AppSettings, slint_utils::SlintOption}, SlInstanceType, SlSimpleInstance};
 
 use self::{errors::InstanceGatherError, multimc::*, curseforge::*};
 
@@ -45,28 +46,26 @@ pub enum InstanceType {
 }
 
 
-pub async fn get_instances(settings: AppSettings) -> IResult<Vec<SimpleInstance>> {
+pub async fn get_instances(settings: Arc<AppSettings>) -> IResult<Vec<SimpleInstance>> {
     let time_start = Instant::now();
 
-    let dir = settings.instance_path.ok_or(InstanceGatherError::PathUnset)?;
-    
-    let mut paths = fs::read_dir(&dir).await.or(Err(InstanceGatherError::DirectoryReadFailed(dir)))?;
+    let dir = settings.instance_path.as_ref().ok_or(InstanceGatherError::PathUnset)?;
+    let mut paths = fs::read_dir(dir).await.or(Err(InstanceGatherError::DirectoryReadFailed(dir.to_string())))?;
 
     let mut instances = Vec::new();
-
     let mut tasks = JoinSet::new();
 
     while let Ok(Some(path)) = paths.next_entry().await {
         if path.file_type().await.map_err(
             |err| InstanceGatherError::FileTypeFailed(path.path(), err)
         )?.is_dir() {
-            tasks.spawn(async move {
+            tasks.spawn(clone!([settings], async move {
                 let p = &path.path();
                 trace!("Scanning folder {p:?}");
 
                 if p.join("minecraftinstance.json").is_file() {
                     trace!("Found minecraftinstance.json in {p:?}");
-                    Some(SimpleInstance::get_from_cf(&path.path()).await)
+                    Some(SimpleInstance::get_from_cf(&path.path(), settings).await)
                 } else if p.join("instance.cfg").is_file() {
                     trace!("Found instance.cfg in {p:?}");
                     Some(SimpleInstance::get_from_mmc(&path.path()).await)
@@ -74,7 +73,7 @@ pub async fn get_instances(settings: AppSettings) -> IResult<Vec<SimpleInstance>
                     info!("The folder at {p:?} does not contain a recognized minecraft instance!");
                     None
                 }
-            });
+            }));
         }
     }
 
@@ -159,8 +158,8 @@ impl SimpleInstance {
         })
     }
 
-    pub async fn get_from_cf(path: &PathBuf) -> IResult<Self> {
-        let meta = CFMetadata::get(path).await?;
+    pub async fn get_from_cf(path: &PathBuf, settings: Arc<AppSettings>) -> IResult<Self> {
+        let meta = CFMetadata::get(path, settings).await?;
         let instance_json = CFInstance::get(path).await?;
 
         Ok(SimpleInstance {
@@ -195,5 +194,28 @@ impl SimpleInstance {
             },
             instance_type: InstanceType::CurseForge,
         })
+    }
+
+    pub fn to_slint(&self) -> SlSimpleInstance {
+        SlSimpleInstance {
+            icon_path: self.icon_path.to_string().into(),
+            id: (self.id as i32).into(),
+            instance_path: self.instance_path.to_string_lossy().to_string().into(),
+            instance_type: self.instance_type.to_slint(),
+            last_played: SlintOption::from(self.last_played.map(|time| time.to_string())).into(),
+            mc_version: self.mc_version.to_string().into(),
+            minecraft_path: self.minecraft_path.to_string_lossy().to_string().into(),
+            modloader: self.modloader.name.to_string().into(),
+            name: self.name.to_string().into()
+        }
+    }
+}
+
+impl InstanceType {
+    pub fn to_slint(&self) -> SlInstanceType {
+        match self { // this sucks even more, but is necessary
+            InstanceType::CurseForge => SlInstanceType::CurseForge,
+            InstanceType::MultiMC => SlInstanceType::MultiMC,
+        }
     }
 }

@@ -1,4 +1,4 @@
-use std::{path::{PathBuf, Path}, str::FromStr};
+use std::{path::{Path, PathBuf}, str::FromStr, sync::Arc};
 
 use log::*;
 use reqwest::Client;
@@ -56,12 +56,12 @@ impl CFInstance {
         )
     }
 
-    async fn download_icon(instance_path: &PathBuf) -> IResult<Option<String>> {
+    async fn download_icon(instance_path: &PathBuf, settings: Arc<AppSettings>) -> IResult<Option<String>> {
         let instance = Self::get(instance_path).await?;
 
-        if let Some(path) = AppSettings::get().icon_path {
-            let file = PathBuf::from_str(&path).map_err(
-                |err| InstanceGatherError::IconPathParseFailed(path, err)
+        if let Some(path) = settings.icon_path.as_ref() {
+            let file = PathBuf::from_str(&path.to_string()).map_err(
+                |err| InstanceGatherError::IconPathParseFailed(path.to_string(), err)
             )?.join(format!("curseforge_{}", fastrand::u32(..)));
     
             if let Some(pack) = instance.installed_modpack {
@@ -100,7 +100,7 @@ pub struct CFMetadata {
 }
 
 impl CFMetadata {
-    pub async fn get(instance_path: &PathBuf) -> IResult<Self> {
+    pub async fn get(instance_path: &PathBuf, settings: Arc<AppSettings>) -> IResult<Self> {
         let path = instance_path.join(META_FILE_NAME);
 
         match fs::read(&path).await {
@@ -109,7 +109,7 @@ impl CFMetadata {
                     Ok(parsed) => Ok(parsed),
                     Err(err) => {
                         warn!("{}", InstanceGatherError::ParseFailedMeta(path, err));
-                        Ok(Self::generate(instance_path).await?)
+                        Ok(Self::generate(instance_path, settings.clone()).await?)
                     },
                 };
         
@@ -118,24 +118,24 @@ impl CFMetadata {
                         true, |icon| !icon.exists()
                     )
                 ) {
-                    Self::generate(instance_path).await
+                    Self::generate(instance_path, settings).await
                 } else {
                     result
                 }
             },
             Err(err) => {
                 warn!("{}", InstanceGatherError::FileReadFailed(path, err));
-                Self::generate(instance_path).await
+                Self::generate(instance_path, settings).await
             }
         }
     }
 
-    async fn generate(instance_path: &PathBuf) -> IResult<Self> {
+    async fn generate(instance_path: &PathBuf, settings: Arc<AppSettings>) -> IResult<Self> {
         let path = instance_path.join(META_FILE_NAME);
 
         let meta = CFMetadata {
             instance_id: fastrand::u32(..),
-            saved_icon: match CFInstance::download_icon(instance_path).await {
+            saved_icon: match CFInstance::download_icon(instance_path, settings).await {
                 Ok(Some(icon)) => icon,
                 Ok(None) => "default_instance.png".to_string(),
                 Err(err) => {

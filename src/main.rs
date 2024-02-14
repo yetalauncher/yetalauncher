@@ -1,5 +1,6 @@
 use std::sync::{Arc, RwLock};
 
+use launcher::instances::SimpleInstance;
 use log::*;
 use reqwest::Client;
 use rfd::AsyncFileDialog;
@@ -8,7 +9,7 @@ use slint::{spawn_local, Model, ModelRc, PlatformError, VecModel};
 use clone_macro::clone;
 use tokio::runtime::Runtime;
 
-use crate::{app::{settings::AppSettings, slint_utils::SlintOption}, launcher::{java::{get_java_version, JavaDetails}, launching::mc_structs::{MCSimpleVersion, MCVersionDetails, MCVersionList}}};
+use crate::{app::{settings::AppSettings, slint_utils::SlintOption}, launcher::{instances, java::{get_java_version, JavaDetails}, launching::mc_structs::{MCSimpleVersion, MCVersionDetails, MCVersionList}}};
 
 slint::include_modules!();
 pub use slint_generatedMainWindow::*;
@@ -33,7 +34,12 @@ fn main() {
 
 #[derive(Debug)]
 pub struct YetaLauncher {
-    settings: AppSettings
+    settings: AppSettings,
+    instances: Option<Vec<SimpleInstance>>
+}
+
+unsafe impl Send for YetaLauncher {
+
 }
 
 impl YetaLauncher {
@@ -141,6 +147,34 @@ impl YetaLauncher {
             })).unwrap();
         }));
 
+        settings.on_get_instances(clone!([window, app, rt], move || {
+            spawn_local(clone!([window, app, rt], async move {
+                let _guard = rt.enter();
+                let mut app = app.write().unwrap();
+
+                if app.instances.is_none() {
+                    let instances = instances::get_instances(Arc::new(app.settings.clone())).await;
+
+                    match instances {
+                        Ok(inst) => app.instances = Some(inst),
+                        Err(err) => error!("Failed to gather instances: {err}")
+                    }
+                }
+
+                window.global::<Settings>().set_instances(match &app.instances {
+                    Some(inst) => ModelRc::new(
+                        VecModel::from(
+                            inst.into_iter()
+                            .map(SimpleInstance::to_slint)
+                            .collect::<Vec<SlSimpleInstance>>()
+                        )
+                    ),
+                    None => ModelRc::default(),
+                })
+                
+            })).unwrap();
+        }));
+
 
         info!("Starting...");
         window.run()?;
@@ -149,7 +183,8 @@ impl YetaLauncher {
 
     fn new() -> Self {
         Self {
-            settings: AppSettings::get()
+            settings: AppSettings::get(),
+            instances: None
         }
     }
 

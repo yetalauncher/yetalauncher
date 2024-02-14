@@ -23,7 +23,7 @@ pub struct MCVersionDetails {
     pub compliance_level: u32
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MCSimpleVersion {
     pub id: String,
     #[serde(rename = "type")]

@@ -9,7 +9,7 @@ use super::launching::mc_structs::MCSimpleVersion;
 use crate::{app::slint_utils::SlintOption, slint_generatedMainWindow::*};
 
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct JavaDetails {
     pub path: String,
     pub label: String,
@@ -20,7 +20,7 @@ pub struct JavaDetails {
     pub args: String
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct JavaMCRange {
     min: Option<MCSimpleVersion>,
     max: Option<MCSimpleVersion>

@@ -11,7 +11,7 @@ use super::{consts::SETTINGS_FILE_NAME, slint_utils::SlintOption, utils::get_con
 
 
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AppSettings {
     pub instance_size: u16,
     pub instance_path: Option<String>,

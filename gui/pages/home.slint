@@ -1,8 +1,16 @@
-import { App } from "../globals.slint";
+import { App, Settings } from "../globals.slint";
 
 export component HomePage inherits VerticalLayout {
 
     Text {
         text: "Home page";
+
+        init => {
+            if Settings.instances.length == 0 {
+                Settings.get-instances();
+            }
+        }
     }
+
+
 }

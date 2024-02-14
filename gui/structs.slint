@@ -1,3 +1,5 @@
+import { SlInstanceType } from "enums.slint";
+
 export struct SlMCVersionDetails {
     id: string,
     typ: string,
@@ -22,3 +24,16 @@ export struct SlSettings {
     icon_path_set: bool,
     java_settings: [SlJavaDetails]
 }
+
+export struct SlSimpleInstance {
+    name: string,
+    icon_path: string,
+    minecraft_path: string,
+    instance_path: string,
+    id: int,
+    mc_version: string,
+    modloader: string,
+    last_played: [string],
+    instance_type: SlInstanceType
+}
+

@@ -1,5 +1,5 @@
 import { Pages } from "enums.slint";
-import { SlSettings, SlMCVersionDetails } from "structs.slint";
+import { SlSettings, SlMCVersionDetails, SlSimpleInstance } from "structs.slint";
 
 export global App {
     in-out property <Pages> page;
@@ -14,6 +14,7 @@ export global App {
 export global Settings {
     in-out property <SlSettings> settings;
     in-out property <[SlMCVersionDetails]> version_list;
+    in-out property <[SlSimpleInstance]> instances;
 
     callback update-instance-path();
     callback update-icon-path();
@@ -23,6 +24,7 @@ export global Settings {
     callback test-java(string, string) -> [string];
 
     callback get-mc-versions();
+    callback get-instances();
 }
 
 export global Palette {
