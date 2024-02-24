@@ -14,7 +14,7 @@ export global App {
 export global Settings {
     in-out property <SlSettings> settings;
     in-out property <[SlMCVersionDetails]> version_list;
-    in-out property <[SlSimpleInstance]> instances;
+    in-out property <[[SlSimpleInstance]]> instances;
 
     callback update-instance-path();
     callback update-icon-path();
@@ -24,7 +24,7 @@ export global Settings {
     callback test-java(string, string) -> [string];
 
     callback get-mc-versions();
-    callback get-instances();
+    callback get-instances(length, bool);
 }
 
 export global Palette {

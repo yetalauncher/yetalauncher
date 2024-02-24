@@ -1,16 +1,36 @@
 import { App, Settings } from "../globals.slint";
+import { ScrollView, VerticalBox } from "std-widgets.slint";
+import { InstanceTile } from "../widgets/instance_tile.slint";
+import { IconButton } from "../widgets/icon_button.slint";
+import { SlSimpleInstance } from "../structs.slint";
 
 export component HomePage inherits VerticalLayout {
 
-    Text {
-        text: "Home page";
-
-        init => {
-            if Settings.instances.length == 0 {
-                Settings.get-instances();
-            }
+    IconButton {
+        text: "Refresh";
+        
+        clicked => {
+            Settings.get-instances(layout.visible-width, true);
         }
     }
 
+    layout := ScrollView {
+        VerticalLayout {
+            for instance_row in Settings.instances: HorizontalLayout {
+                for instance in instance-row: InstanceTile {
+                    width: layout.visible-width / ceil(layout.visible-width / ((30 - Settings.settings.instance_size) * 15px));
+                    height: 90px;
+                    instance: instance;
+                }
+            }
+        }
 
+
+
+        init => {
+            if Settings.instances.length == 0 {
+                Settings.get-instances(layout.visible-width, false);
+            }
+        }
+    }
 }

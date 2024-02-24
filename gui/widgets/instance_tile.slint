@@ -1,0 +1,18 @@
+import { SlSimpleInstance } from "../structs.slint";
+import { App, Palette, Settings } from "../globals.slint";
+
+export component InstanceTile inherits VerticalLayout {
+    padding: 4px;
+    in-out property <SlSimpleInstance> instance;
+
+    Rectangle {
+        border-radius: 6px;
+        background: Palette.bg-tertiary;
+
+        Text {
+            x: 4px; y: 4px;
+            overflow: clip;
+            text: instance.name;
+        }
+    }
+}
