@@ -3,14 +3,22 @@ import { App, Palette, Settings } from "../globals.slint";
 
 export component InstanceTile inherits VerticalLayout {
     padding: 4px;
+    height: 180px;
     in-out property <SlSimpleInstance> instance;
 
     Rectangle {
+        clip: true;
         border-radius: 6px;
         background: Palette.bg-tertiary;
 
+        Image {
+            x: (parent.width - self.height) / 2; y: 4px;
+            source: instance.icon-path;
+            height: 142px;
+        }
+
         Text {
-            x: 4px; y: 4px;
+            x: 4px; y: 150px;
             overflow: clip;
             text: instance.name;
         }

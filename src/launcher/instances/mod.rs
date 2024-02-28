@@ -1,6 +1,7 @@
-use std::{cmp::Ordering, path::PathBuf, sync::Arc};
+use std::{cmp::Ordering, fs::File, io::BufReader, path::PathBuf, sync::Arc};
 
 use clone_macro::clone;
+use slint::{Image, SharedPixelBuffer};
 use tokio::{fs, task::JoinSet, time::Instant};
 use chrono::NaiveDateTime;
 use log::{*};
@@ -84,7 +85,7 @@ pub async fn get_instances(settings: Arc<AppSettings>) -> IResult<Vec<SimpleInst
                 if let (Some(path), Some(icon)) = (&settings.icon_path, MMCConfig::check_icon(&instance.icon_path)) {
                     instance.icon_path = format!("{path}/{icon}")
                 } else {
-                    instance.icon_path = "default_instance.png".into()
+                    instance.icon_path = "resources/default_instance.png".into()
                 }
             }
             debug!("{:?} - {} | Icon: {:?}", &instance.instance_type, &instance.name, &instance.icon_path);
@@ -198,7 +199,10 @@ impl SimpleInstance {
 
     pub fn to_slint(&self) -> SlSimpleInstance {
         SlSimpleInstance {
-            icon_path: self.icon_path.to_string().into(),
+            icon_path: //Image::load_from_path(PathBuf::from(&self.icon_path).as_path()).unwrap_or_default(),
+            self.load_image().unwrap_or(
+                Image::load_from_path(PathBuf::from("resources/default_instance.png").as_path()).unwrap_or_default()
+            ),
             id: (self.id as i32).into(),
             instance_path: self.instance_path.to_string_lossy().to_string().into(),
             instance_type: self.instance_type.to_slint(),
@@ -208,6 +212,25 @@ impl SimpleInstance {
             modloader: self.modloader.name.to_string().into(),
             name: self.name.to_string().into()
         }
+    }
+
+    fn load_image(&self) -> Option<Image> {
+        let reader = BufReader::new(File::open(&self.icon_path).ok()?);
+        let image = image::io::Reader::with_format(reader, image::ImageFormat::Png);
+        
+        let decoded = image.decode().map_err(|err|
+            warn!("Failed to decode instance icon: {err}")
+        ).ok()?;
+
+        Some(
+            Image::from_rgba8(
+            SharedPixelBuffer::clone_from_slice(
+                    decoded.as_bytes(),
+                    decoded.width(),
+                    decoded.height()
+                )
+            )
+        )
     }
 }
 

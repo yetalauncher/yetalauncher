@@ -11,6 +11,7 @@ chrono = { version = "0.4.33", features = ["serde"] }
 clone-macro = "0.1.0"
 dirs = "5.0.1"
 fastrand = "2.0.1"
+image = "0.24.9"
 jars = "0.1.1"
 log = "0.4.20"
 reqwest = { version = "0.11.23", features = ["json"] }

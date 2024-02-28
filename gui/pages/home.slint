@@ -19,13 +19,10 @@ export component HomePage inherits VerticalLayout {
             for instance_row in Settings.instances: HorizontalLayout {
                 for instance in instance-row: InstanceTile {
                     width: layout.visible-width / ceil(layout.visible-width / ((30 - Settings.settings.instance_size) * 15px));
-                    height: 90px;
                     instance: instance;
                 }
             }
         }
-
-
 
         init => {
             if Settings.instances.length == 0 {
