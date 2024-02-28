@@ -1,10 +1,10 @@
-use std::path::Path;
+use std::{path::{Path, PathBuf}, str::FromStr, sync::Arc};
 
 use log::warn;
 use serde::{Serialize, Deserialize};
 use tokio::fs;
 
-use crate::app::consts::META_FILE_NAME;
+use crate::app::{consts::META_FILE_NAME, settings::AppSettings};
 
 use super::{errors::InstanceGatherError, IResult, InstanceType};
 
@@ -30,7 +30,7 @@ impl MMCConfig {
         )
     }
 
-    pub fn check_icon(icon_key: &str) -> Option<String> {
+    pub fn get_icon(&self, settings: Arc<AppSettings>) -> Option<String> {
         let internal_icons = [
             "default", "bee", "brick", "chicken", "creeper", "diamond", "dirt", "enderman", "enderpearl", "flame", "fox", "gear", "herobrine",
             "gold", "grass", "iron", "magitech", "meat", "modrinth", "netherstar", "planks", "prismlauncher", "squarecreeper", "steve", 
@@ -40,10 +40,13 @@ impl MMCConfig {
             "squarecreeper_legacy", "steve_legacy", "stone_legacy", "tnt_legacy"
         ]; // We can't display those since they're built into MultiMC / Prism Launcher
 
+        let icon_key = self.icon_key.as_ref()?;
+
         if internal_icons.iter().any(|&i| icon_key == i) {
             None
         } else {
-            Some(icon_key.to_string())
+            let icon_path = PathBuf::from_str(settings.icon_path.as_ref()?).ok()?;
+            Some(icon_path.join(icon_key).to_string_lossy().to_string())
         }
     }
 }

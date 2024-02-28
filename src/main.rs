@@ -157,10 +157,14 @@ impl YetaLauncher {
                     }
                 }
                 window.global::<Settings>().set_instances(match &app.instances {
-                    Some(inst) => ModelRc::new(
-                        VecModel::from(
-                            inst.iter().map(SimpleInstance::to_slint).collect::<Vec<_>>()
-                        )
+                    Some(instances) => ModelRc::new(
+                        VecModel::from({
+                            let mut result = Vec::new();
+                            for inst in instances {
+                                result.push(inst.to_slint().await);
+                            }
+                            result
+                        })
                     ),
                     None => ModelRc::default(),
                 })

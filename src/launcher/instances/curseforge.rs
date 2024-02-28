@@ -96,7 +96,7 @@ impl CFInstance {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CFMetadata {
     pub instance_id: u32,
-    pub saved_icon: String
+    pub saved_icon: Option<String>
 }
 
 impl CFMetadata {
@@ -112,13 +112,15 @@ impl CFMetadata {
                         Ok(Self::generate(instance_path, settings.clone()).await?)
                     },
                 };
-        
-                if result.as_ref().is_ok_and(
-                    |meta| PathBuf::from_str(&meta.saved_icon).map_or(
-                        true, |icon| !icon.exists()
-                    )
+                
+                if result.as_ref().is_ok_and( // If parsing/generation succeeded, and:
+                    |meta| if let Some(saved_icon) = &meta.saved_icon { // saved_icon is not null, and:
+                        PathBuf::from_str(saved_icon).map_or( // the file path couldn't be parsed, or:
+                            true, |icon| !icon.exists() // targeted icon file does not exist
+                        )
+                    } else { false } // (if file path is unset, no need to regenerate ever)
                 ) {
-                    Self::generate(instance_path, settings).await
+                    Self::generate(instance_path, settings).await // then regenerate the metadata
                 } else {
                     result
                 }
@@ -136,11 +138,10 @@ impl CFMetadata {
         let meta = CFMetadata {
             instance_id: fastrand::u32(..),
             saved_icon: match CFInstance::download_icon(instance_path, settings).await {
-                Ok(Some(icon)) => icon,
-                Ok(None) => "default_instance.png".to_string(),
+                Ok(icon) => icon,
                 Err(err) => {
                     warn!("{err}");
-                    "default_instance.png".to_string()
+                    None
                 }
             }
         };

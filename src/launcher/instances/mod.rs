@@ -2,7 +2,7 @@ use std::{cmp::Ordering, fs::File, io::BufReader, path::PathBuf, sync::Arc};
 
 use clone_macro::clone;
 use slint::{Image, SharedPixelBuffer};
-use tokio::{fs, task::JoinSet, time::Instant};
+use tokio::{fs, runtime::Handle, task::JoinSet, time::Instant};
 use chrono::NaiveDateTime;
 use log::{*};
 use serde::{Deserialize, Serialize};
@@ -24,7 +24,7 @@ pub type IResult<T> = core::result::Result<T, InstanceGatherError>;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SimpleInstance {
     pub name: String,
-    pub icon_path: String,
+    pub icon_path: Option<String>,
     pub minecraft_path: PathBuf,
     pub instance_path: PathBuf,
     pub id: u32,
@@ -69,7 +69,7 @@ pub async fn get_instances(settings: Arc<AppSettings>) -> IResult<Vec<SimpleInst
                     Some(SimpleInstance::get_from_cf(&path.path(), settings).await)
                 } else if p.join("instance.cfg").is_file() {
                     trace!("Found instance.cfg in {p:?}");
-                    Some(SimpleInstance::get_from_mmc(&path.path()).await)
+                    Some(SimpleInstance::get_from_mmc(&path.path(), settings).await)
                 } else {
                     info!("The folder at {p:?} does not contain a recognized minecraft instance!");
                     None
@@ -80,14 +80,7 @@ pub async fn get_instances(settings: Arc<AppSettings>) -> IResult<Vec<SimpleInst
 
     while let Some(Ok(opt)) = tasks.join_next().await {
         if let Some(result) = opt {
-            let mut instance = result?;
-            if instance.instance_type == InstanceType::MultiMC {
-                if let (Some(path), Some(icon)) = (&settings.icon_path, MMCConfig::check_icon(&instance.icon_path)) {
-                    instance.icon_path = format!("{path}/{icon}")
-                } else {
-                    instance.icon_path = "resources/default_instance.png".into()
-                }
-            }
+            let instance = result?;
             debug!("{:?} - {} | Icon: {:?}", &instance.instance_type, &instance.name, &instance.icon_path);
             instances.push(instance);
         }
@@ -113,14 +106,14 @@ pub async fn get_instances(settings: Arc<AppSettings>) -> IResult<Vec<SimpleInst
 
 
 impl SimpleInstance {
-    pub async fn get_from_mmc(path: &PathBuf) -> IResult<Self> {
+    pub async fn get_from_mmc(path: &PathBuf, settings: Arc<AppSettings>) -> IResult<Self> {
         let meta = MMCMetadata::get(path).await?;
         let instance_cfg = MMCConfig::get(path).await?;
         let pack_json = MMCPack::get(path).await?;
 
         Ok(SimpleInstance {
+            icon_path: instance_cfg.get_icon(settings),
             name: instance_cfg.name,
-            icon_path: instance_cfg.icon_key.unwrap_or("default".into()),
             minecraft_path: if path.join(".minecraft").exists() {
                 path.join(".minecraft")
             } else {
@@ -197,10 +190,10 @@ impl SimpleInstance {
         })
     }
 
-    pub fn to_slint(&self) -> SlSimpleInstance {
+    pub async fn to_slint(&self) -> SlSimpleInstance {
         SlSimpleInstance {
             icon_path: //Image::load_from_path(PathBuf::from(&self.icon_path).as_path()).unwrap_or_default(),
-            self.load_image().unwrap_or(
+            self.load_image().await.unwrap_or(
                 Image::load_from_path(PathBuf::from("resources/default_instance.png").as_path()).unwrap_or_default()
             ),
             id: (self.id as i32).into(),
@@ -214,23 +207,34 @@ impl SimpleInstance {
         }
     }
 
-    fn load_image(&self) -> Option<Image> {
-        let reader = BufReader::new(File::open(&self.icon_path).ok()?);
-        let image = image::io::Reader::with_format(reader, image::ImageFormat::Png);
-        
-        let decoded = image.decode().map_err(|err|
-            warn!("Failed to decode instance icon: {err}")
-        ).ok()?;
+    async fn load_image(&self) -> Option<Image> {
+        if let Some(path) = self.icon_path.clone() {
+            let image = Handle::current().spawn(async move {
+                let reader = BufReader::new(File::open(&path).map_err(
+                    |err| warn!("Failed to open instance icon '{path}': {err}")
+                ).ok()?);
+    
+                let image = image::io::Reader::new(reader).with_guessed_format().map_err(
+                    |err| warn!("Failed to guess icon format '{path}': {err}")
+                ).ok()?;
+                
+                let decoded = image.decode().map_err(
+                    |err| warn!("Failed to decode instance icon '{path}': {err}")
+                ).ok()?;
 
-        Some(
-            Image::from_rgba8(
-            SharedPixelBuffer::clone_from_slice(
-                    decoded.as_bytes(),
-                    decoded.width(),
-                    decoded.height()
+                Some(decoded.into_rgba8())
+            }).await.unwrap()?;
+    
+            Some(
+                Image::from_rgba8(
+                SharedPixelBuffer::clone_from_slice(
+                        image.as_raw(),
+                        image.width(),
+                        image.height()
+                    )
                 )
             )
-        )
+        } else { None }
     }
 }
 
