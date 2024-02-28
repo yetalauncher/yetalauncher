@@ -1,5 +1,5 @@
 import { App, Settings } from "../globals.slint";
-import { ScrollView, VerticalBox } from "std-widgets.slint";
+import { ListView } from "std-widgets.slint";
 import { InstanceTile } from "../widgets/instance_tile.slint";
 import { IconButton } from "../widgets/icon_button.slint";
 import { SlSimpleInstance } from "../structs.slint";
@@ -10,23 +10,23 @@ export component HomePage inherits VerticalLayout {
         text: "Refresh";
         
         clicked => {
-            Settings.get-instances(layout.visible-width, true);
+            Settings.get-instances(true);
         }
     }
 
-    layout := ScrollView {
-        VerticalLayout {
-            for instance_row in Settings.instances: HorizontalLayout {
-                for instance in instance-row: InstanceTile {
-                    width: layout.visible-width / ceil(layout.visible-width / ((30 - Settings.settings.instance_size) * 15px));
-                    instance: instance;
-                }
+    if Settings.instances.length > 0: view := ListView {
+        for instance_row in Settings.grid-instances(view.visible-width, Settings.instances): HorizontalLayout {
+            for instance in instance-row: InstanceTile {
+                width: view.visible-width / ceil(view.visible-width / ((30 - Settings.settings.instance_size) * 15px));
+                instance: instance;
             }
         }
+    }
 
+    HorizontalLayout {
         init => {
             if Settings.instances.length == 0 {
-                Settings.get-instances(layout.visible-width, false);
+                Settings.get-instances(false);
             }
         }
     }

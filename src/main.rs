@@ -143,7 +143,7 @@ impl YetaLauncher {
             })).unwrap();
         }));
 
-        settings.on_get_instances(clone!([window, app, rt], move |width, force| {
+        settings.on_get_instances(clone!([window, app, rt], move |force| {
             spawn_local(clone!([window, app, rt], async move {
                 let _guard = rt.enter();
                 let mut app = app.write().unwrap();
@@ -157,32 +157,40 @@ impl YetaLauncher {
                     }
                 }
                 window.global::<Settings>().set_instances(match &app.instances {
-                    Some(inst) => ModelRc::new({
-                        let mut result = Vec::new();
-                        let mut vec = Vec::new();
-
-                        let instances = inst.into_iter().map(SimpleInstance::to_slint);
-                        let per_row = (width / ((30 - app.settings.instance_size) * 15) as f32).ceil() as i32;
-                        let mut i = 0;
-
-                        for inst in instances {
-                            vec.push(inst);
-                            i += 1;
-                            if i == per_row {
-                                result.push(ModelRc::new(VecModel::from(vec)));
-                                vec = Vec::new();
-                                i = 0;
-                            }
-                        }
-                        if !vec.is_empty() {
-                            result.push(ModelRc::new(VecModel::from(vec)));
-                        }
-                        
-                        VecModel::from(result)
-                    }),
+                    Some(inst) => ModelRc::new(
+                        VecModel::from(
+                            inst.iter().map(SimpleInstance::to_slint).collect::<Vec<_>>()
+                        )
+                    ),
                     None => ModelRc::default(),
                 })
             })).unwrap();
+        }));
+
+        settings.on_grid_instances(clone!([app], move |width, instances| {
+            ModelRc::new({
+                let mut result = Vec::new();
+                let mut vec = Vec::new();
+
+                let instances = instances.iter();
+                let per_row = (width / ((30 - app.read().unwrap().settings.instance_size) * 15) as f32).ceil() as i32;
+                let mut i = 0;
+
+                for inst in instances {
+                    vec.push(inst);
+                    i += 1;
+                    if i == per_row {
+                        result.push(ModelRc::new(VecModel::from(vec)));
+                        vec = Vec::new();
+                        i = 0;
+                    }
+                }
+                if !vec.is_empty() {
+                    result.push(ModelRc::new(VecModel::from(vec)));
+                }
+                
+                VecModel::from(result)
+            })
         }));
 
 
