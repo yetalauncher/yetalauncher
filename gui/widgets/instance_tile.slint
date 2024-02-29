@@ -3,24 +3,42 @@ import { App, Palette, Settings } from "../globals.slint";
 
 export component InstanceTile inherits VerticalLayout {
     padding: 4px;
-    height: 180px;
     in-out property <SlSimpleInstance> instance;
 
-    Rectangle {
+    container := Rectangle {
         clip: true;
         border-radius: 6px;
-        background: Palette.bg-tertiary;
+        background: Palette.bg-secondary;
+        height: icon.height + 54px;
+    
+        icon := Rectangle {
+            x: 6px; y: 6px;
+            width: parent.width - 2 * self.x;
+            height: self.width;
+            border-radius: container.border-radius;
+            background: Palette.bg-tertiary;
+            clip: true;
 
-        Image {
-            x: (parent.width - self.height) / 2; y: 4px;
-            source: instance.icon-path;
-            height: 142px;
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: instance.icon-path;
+            }
         }
 
         Text {
-            x: 4px; y: 150px;
-            overflow: clip;
+            x: 4px; y: icon.height + 8px;
+            width: parent.width - 2 * self.x;
+            font-size: 20px;
+            overflow: elide;
             text: instance.name;
+        }
+
+        Text {
+            x: 4px; y: icon.height + 32px;
+            width: parent.width - 2 * self.x;
+            font-size: 14px;
+            text: instance.mc-version + ", " + instance.modloader;
         }
     }
 }
