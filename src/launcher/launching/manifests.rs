@@ -1,5 +1,6 @@
-use std::{iter, path::PathBuf, fs};
+use std::{fs, iter, path::PathBuf, str::FromStr};
 
+use chrono::DateTime;
 use log::{*};
 use reqwest::Client;
 
@@ -22,7 +23,7 @@ impl MCVersionList {
 }
 
 impl MCVersionDetails {
-    pub async fn from_id(version_id: String, client: &Client) -> Option<Self> {
+    pub async fn from_id(version_id: &str, client: &Client) -> Option<Self> {
         let version_list = MCVersionList::get(client).await?;
         version_list.versions.into_iter().find(|ver| {
             ver.id == version_id
@@ -62,7 +63,7 @@ impl MCSimpleVersion {
         Self {
             id: slint.id.into(),
             typ: slint.typ.into(),
-            release_time: slint.release_time.into()
+            release_time: DateTime::from_str(&slint.release_time).unwrap()
         }
     }
 }

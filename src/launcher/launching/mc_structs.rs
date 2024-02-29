@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};
 use serde_json::Value;
 
@@ -17,8 +18,8 @@ pub struct MCVersionDetails {
     #[serde(rename = "type")]
     pub typ: String,
     pub url: String,
-    pub time: String,
-    pub release_time: String,
+    pub time: DateTime<Utc>,
+    pub release_time: DateTime<Utc>,
     pub sha1: String,
     pub compliance_level: u32
 }
@@ -28,7 +29,7 @@ pub struct MCSimpleVersion {
     pub id: String,
     #[serde(rename = "type")]
     pub typ: String,
-    pub release_time: String
+    pub release_time: DateTime<Utc>
 }
 
 #[derive(Debug, Serialize, Deserialize)]
