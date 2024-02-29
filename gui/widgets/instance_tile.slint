@@ -73,6 +73,9 @@ export component InstanceTile inherits VerticalLayout {
             launch_area := TouchArea {
                 z: 5;
                 mouse-cursor: pointer;
+                clicked => {
+                    Settings.launch-instance(instance.id)
+                }
             }
 
             animate background {

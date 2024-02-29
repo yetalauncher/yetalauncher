@@ -22,8 +22,8 @@ pub struct JavaDetails {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct JavaMCRange {
-    min: Option<MCSimpleVersion>,
-    max: Option<MCSimpleVersion>
+    pub min: Option<MCSimpleVersion>,
+    pub max: Option<MCSimpleVersion>
 }
 
 pub fn get_java_version(path: String, args: String) -> Result<String, String> {

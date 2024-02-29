@@ -197,6 +197,20 @@ impl YetaLauncher {
             })
         }));
 
+        settings.on_launch_instance(clone!([app, rt], move |instance_id| {
+            spawn_local(clone!([app, rt], async move {
+                let _guard = rt.enter();
+                let app = &app.read().unwrap();
+                if let Some(instances) = &app.instances {
+                    let instance = instances.iter()
+                    .find(|inst| inst.id == instance_id as u32)
+                    .expect("Could not find instance to launch! How did we get here?");
+
+                    instance.launch(&app.settings).await.unwrap();
+                }
+            })).unwrap();
+        }));
+
 
         info!("Starting...");
         window.run()?;
