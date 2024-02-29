@@ -4,10 +4,13 @@ import { App, Palette, Settings } from "../globals.slint";
 export component InstanceTile inherits VerticalLayout {
     padding: 4px;
     in-out property <SlSimpleInstance> instance;
+    private property <bool> hovering: area.has-hover || launch-area.has-hover;
 
     container := Rectangle {
         clip: true;
         border-radius: 6px;
+        border-color: hovering ? Palette.primary : Palette.bg-secondary;
+        border-width: 1px;
         background: Palette.bg-secondary;
         height: icon.height + 54px;
     
@@ -39,6 +42,56 @@ export component InstanceTile inherits VerticalLayout {
             width: parent.width - 2 * self.x;
             font-size: 14px;
             text: instance.mc-version + ", " + instance.modloader;
+        }
+
+        Rectangle {
+            background: launch-area.has-hover ? Palette.primary : Palette.primary.transparentize(0.3);
+            y: parent.height - self.height;
+            clip: true;
+            height: hovering ? 30px : 0px;
+
+            HorizontalLayout {
+                x: (parent.width - self.width) / 2;
+                width: self.min-width;
+                spacing: 2px;
+                padding: 3px;
+
+                Image {
+                    source: @image-url("../../resources/tabler-icons/player-play.svg");
+                    height: 24px;
+                    width: 24px;
+                    colorize: Palette.text;
+                }
+
+                Text {
+                    text: "Play";
+                    font-weight: 700;
+                    font-size: 18px;
+                }
+            }
+
+            launch_area := TouchArea {
+                z: 5;
+                mouse-cursor: pointer;
+            }
+
+            animate background {
+                duration: 150ms;
+            }
+
+            animate height {
+                duration: 100ms;
+                easing: ease-in-out;
+            }
+        }
+
+        area := TouchArea {
+            mouse-cursor: pointer;
+            z: -1;
+        }
+
+        animate border-color {
+            duration: 150ms;
         }
     }
 }
