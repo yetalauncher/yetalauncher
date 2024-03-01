@@ -1,19 +1,15 @@
 use std::{io::Error, fs::{self, create_dir_all}, path::PathBuf};
 
 use log::*;
+use slint::{ModelRc, VecModel};
 
-use crate::launcher::authentication::auth_structs::*;
+use crate::{launcher::authentication::auth_structs::*, slint_generatedMainWindow::{SlMCAccount, SlMCSkin}};
 
-use super::{consts::ACCOUNT_FILE_NAME, utils::get_config_dir};
-
+use super::{consts::ACCOUNT_FILE_NAME, slint_utils::SlintOption, utils::get_config_dir};
 
 
 
 impl Accounts {
-    pub fn to_slint(&self) {
-
-    }
-
     pub fn get() -> Accounts {
         let accounts_path = Self::get_path();
     
@@ -22,7 +18,7 @@ impl Accounts {
                 return account_list
             }
         }
-        
+
         let fallback_list = Accounts {
             accounts: Vec::new(),
             selected_index: None,
@@ -86,5 +82,35 @@ impl Accounts {
 
         acc_list.accounts.remove(index);
         acc_list.save();
+    }
+}
+
+impl MCAccount {
+    pub fn to_slint(&self) -> SlMCAccount {
+        SlMCAccount {
+            username: self.mc_profile.name.to_string().into(),
+            uuid: self.mc_profile.id.to_string().into(),
+            capes: ModelRc::new(VecModel::from(
+                self.mc_profile.capes.iter().map(
+                    |cape| (cape.id.to_string().into(), )
+                ).collect::<Vec<_>>()
+            )),
+            skins: ModelRc::new(VecModel::from(
+                self.mc_profile.skins.iter().map(
+                    MCSkin::to_slint
+                ).collect::<Vec<_>>()
+            ))
+        }
+    }
+}
+
+impl MCSkin {
+    pub fn to_slint(&self) -> SlMCSkin {
+        SlMCSkin {
+            url: self.url.to_string().into(),
+            state: self.state.to_string().into(),
+            variant: self.variant.to_string().into(),
+            alias: SlintOption::from(self.alias.clone()).into()
+        }
     }
 }

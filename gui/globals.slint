@@ -1,5 +1,5 @@
 import { Pages } from "enums.slint";
-import { SlSettings, SlMCVersionDetails, SlSimpleInstance } from "structs.slint";
+import { SlSettings, SlMCVersionDetails, SlSimpleInstance, SlMCAccount } from "structs.slint";
 
 export global App {
     in-out property <Pages> page;
@@ -15,6 +15,7 @@ export global Settings {
     in-out property <SlSettings> settings;
     in-out property <[SlMCVersionDetails]> version_list;
     in-out property <[SlSimpleInstance]> instances;
+    in-out property <[SlMCAccount]> accounts;
 
     callback update-instance-path();
     callback update-icon-path();
@@ -27,6 +28,8 @@ export global Settings {
     callback get-instances(bool);
     pure callback grid-instances(length, [SlSimpleInstance]) -> [[SlSimpleInstance]];
     callback launch-instance(int);
+
+    callback get-accounts();
 }
 
 export global Palette {

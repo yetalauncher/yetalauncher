@@ -37,3 +37,16 @@ export struct SlSimpleInstance {
     instance_type: SlInstanceType
 }
 
+export struct SlMCSkin {
+    state: string,
+    url: string,
+    variant: string,
+    alias: [string]
+}
+
+export struct SlMCAccount {
+    username: string,
+    uuid: string,
+    skins: [SlMCSkin],
+    capes: [{id: string}]
+}
