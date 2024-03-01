@@ -4,7 +4,7 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct AccountList {
+pub struct Accounts {
     pub accounts: Vec<MCAccount>,
     pub selected_index: Option<u32>
 }

@@ -3,7 +3,7 @@ use std::{path::PathBuf, process::Command};
 use log::{*};
 use reqwest::Client;
 
-use crate::{app::{accounts::get_active_account, settings::AppSettings, utils::{get_classpath_separator, get_library_dir, NotificationState, Notifier}}, launcher::launching::mc_structs::*};
+use crate::{app::{settings::AppSettings, utils::{get_classpath_separator, get_library_dir, NotificationState, Notifier}}, launcher::{authentication::auth_structs::Accounts, launching::mc_structs::*}};
 
 use super::{authentication::auth_structs::MCAccount, instances::SimpleInstance, java::JavaDetails};
 
@@ -60,7 +60,7 @@ impl SimpleInstance {
     async fn get_arguments(&self, java: &JavaDetails, client: &Client) -> Result<Args, String> {
         let loader = self.modloader.typ;
     
-        let mut account = get_active_account()
+        let mut account = Accounts::get_active_account()
             .ok_or("Could not get the selected account!".to_string())?;
         
         account.refresh(&client, false).await;

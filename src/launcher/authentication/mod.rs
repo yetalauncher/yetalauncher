@@ -6,7 +6,7 @@ use serde_json::json;
 use tokio::runtime::Handle;
 use uuid::Uuid;
 
-use crate::{app::{accounts::{save_new_account, update_account}, consts::{MS_CLIENT_ID, REDIRECT_PORT}, utils::{NotificationState, Notifier}}, launcher::authentication::auth_structs::*};
+use crate::{app::{consts::{MS_CLIENT_ID, REDIRECT_PORT}, utils::{NotificationState, Notifier}}, launcher::authentication::auth_structs::*};
 
 pub mod auth_structs;
 
@@ -124,7 +124,7 @@ async fn add_account_code(code: &str, notifier: &Notifier) {
     // trace!("{:#?}", mc_account);
     info!("Saving new Minecraft account...");
     notifier.notify("Saving new account...", NotificationState::Running);
-    if let Err(e) = save_new_account(mc_account) {
+    if let Err(e) = Accounts::save_new_account(mc_account) {
         error!("Error occured while saving new account: {e}")
     }
 
@@ -319,7 +319,7 @@ impl MCAccount {
             self.mc_response = self.xsts_response.xsts_to_mc_response(client).await;
 
             debug!("Saving updated account details...");
-            update_account(previous, self.clone());
+            Accounts::update_account(previous, self.clone());
         }
     }
 }
