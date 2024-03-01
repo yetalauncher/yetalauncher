@@ -1,6 +1,6 @@
 use std::sync::{Arc, RwLock};
 
-use launcher::instances::SimpleInstance;
+use launcher::{authentication::auth_structs::Accounts, instances::SimpleInstance};
 use log::*;
 use reqwest::Client;
 use rfd::AsyncFileDialog;
@@ -35,6 +35,7 @@ fn main() {
 #[derive(Debug)]
 pub struct YetaLauncher {
     settings: AppSettings,
+    accounts: Accounts,
     instances: Option<Vec<SimpleInstance>>
 }
 
@@ -200,15 +201,53 @@ impl YetaLauncher {
         settings.on_launch_instance(clone!([app, rt], move |instance_id| {
             spawn_local(clone!([app, rt], async move {
                 let _guard = rt.enter();
-                let app = &app.read().unwrap();
-                if let Some(instances) = &app.instances {
-                    let instance = instances.iter()
-                    .find(|inst| inst.id == instance_id as u32)
-                    .expect("Could not find instance to launch! How did we get here?");
-
-                    instance.launch(&app.settings).await.unwrap();
-                }
+                let mut app = app.write().unwrap();
+                app.launch_instance(instance_id).await;
             })).unwrap();
+        }));
+
+        settings.on_get_accounts(clone!([window, app], move || {
+            window.global::<Settings>().set_accounts(
+                app.read().unwrap().accounts.to_slint()
+            );
+        }));
+
+        settings.on_grid_accounts(clone!([app], move |width, accounts| {
+            ModelRc::new({
+                let mut result = Vec::new();
+                let mut vec = Vec::new();
+
+                let accounts = accounts.iter();
+                let per_row = (width / ((30 - app.read().unwrap().settings.instance_size) * 15) as f32).ceil() as i32;
+                let mut i = 0;
+
+                for acc in accounts {
+                    vec.push(acc);
+                    i += 1;
+                    if i == per_row {
+                        result.push(ModelRc::new(VecModel::from(vec)));
+                        vec = Vec::new();
+                        i = 0;
+                    }
+                }
+                if !vec.is_empty() {
+                    result.push(ModelRc::new(VecModel::from(vec)));
+                }
+                
+                VecModel::from(result)
+            })
+        }));
+
+        settings.on_set_selected_account(clone!([app, window], move |index| {
+            let mut app = app.write().unwrap();
+            app.accounts.set_selected_index(index as u32);
+            app.sync_accounts(&window);
+        }));
+
+        settings.on_remove_account(clone!([app, window], move |index| {
+            let mut app = app.write().unwrap();
+            app.accounts.remove_account(index as usize);
+            app.sync_accounts(&window);
         }));
 
 
@@ -220,11 +259,26 @@ impl YetaLauncher {
     fn new() -> Self {
         Self {
             settings: AppSettings::get(),
+            accounts: Accounts::get(),
             instances: None
         }
     }
 
     fn sync_settings(&self, window: &Arc<MainWindow>) {
         window.global::<Settings>().set_settings(self.settings.to_slint());
+    }
+
+    fn sync_accounts(&self, window: &Arc<MainWindow>) {
+        window.global::<Settings>().set_accounts(self.accounts.to_slint());
+    }
+
+    async fn launch_instance(&mut self, instance_id: i32) {
+        if let Some(instances) = &self.instances {
+            let instance = instances.iter()
+            .find(|inst| inst.id == instance_id as u32)
+            .expect("Could not find instance to launch! How did we get here?");
+
+            instance.launch(&self.settings, &mut self.accounts).await.unwrap();
+        }
     }
 }

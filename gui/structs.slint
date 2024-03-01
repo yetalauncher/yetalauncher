@@ -47,6 +47,12 @@ export struct SlMCSkin {
 export struct SlMCAccount {
     username: string,
     uuid: string,
+    index: int,
     skins: [SlMCSkin],
     capes: [{id: string}]
+}
+
+export struct SlAccounts {
+    selected_index: [int],
+    accounts: [SlMCAccount]
 }

@@ -298,7 +298,7 @@ impl MCResponse2 {
 
 
 impl MCAccount {
-    pub async fn refresh(&mut self, client: &Client, force: bool) {
+    pub async fn refresh(&mut self, accounts: &mut Accounts, client: &Client, force: bool) {
         let previous = self.clone();
         let now = Utc::now();
 
@@ -319,7 +319,7 @@ impl MCAccount {
             self.mc_response = self.xsts_response.xsts_to_mc_response(client).await;
 
             debug!("Saving updated account details...");
-            Accounts::update_account(previous, self.clone());
+            accounts.update_account(previous, self.clone());
         }
     }
 }

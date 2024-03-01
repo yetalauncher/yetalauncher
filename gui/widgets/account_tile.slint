@@ -1,0 +1,65 @@
+import { SlMCAccount } from "../structs.slint";
+import { App, Palette, Settings } from "../globals.slint";
+import { IconButton } from "icon_button.slint";
+
+export component AccountTile inherits VerticalLayout {
+    padding: 4px;
+    in-out property <SlMCAccount> account;
+    private property <bool> is-selected: Settings.accounts.selected-index.length == 1 ? Settings.accounts.selected-index[0] == account.index : false;
+
+    container := Rectangle {
+        clip: true;
+        border-radius: 6px;
+        border-color: is-selected ? #289e38 : Palette.bg-secondary;
+        border-width: 1px;
+        background: Palette.bg-secondary;
+        height: icon.height + 78px;
+    
+        icon := Rectangle {
+            x: 6px; y: 6px;
+            width: parent.width - 2 * self.x;
+            height: self.width;
+            border-radius: container.border-radius;
+            background: Palette.bg-tertiary;
+            clip: true;
+
+            Text {
+                text: "Image WIP";
+            }
+        }
+
+        Text {
+            x: 4px; y: icon.height + 8px;
+            width: parent.width - 2 * self.x;
+            font-size: 20px;
+            overflow: elide;
+            text: account.username;
+        }
+
+        IconButton {
+            y: icon.height + 37px;
+            color: #289e38;
+            icon: @image-url("../../resources/tabler-icons/circle-check.svg");
+            text: "Select";
+
+            clicked => {
+                Settings.set-selected-account(account.index);
+            }
+        }
+
+        IconButton {
+            width: 24px;
+            x: container.width - self.width - 20px; y: icon.height + 37px;
+            color: #c22626;
+            icon: @image-url("../../resources/tabler-icons/trash-x.svg");
+
+            clicked => {
+                // Settings.remove-account(account.index); TODO until confirmation window implementation
+            }
+        }
+
+        animate background, border-color {
+            duration: 150ms;
+        }
+    }
+}

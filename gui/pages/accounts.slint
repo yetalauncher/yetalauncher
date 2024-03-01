@@ -1,5 +1,24 @@
+import { App, Settings } from "../globals.slint";
+import { ListView } from "std-widgets.slint";
+import { AccountTile } from "../widgets/account_tile.slint";
+import { IconButton } from "../widgets/icon_button.slint";
+import { SlSimpleInstance } from "../structs.slint";
+
 export component AccountsPage inherits VerticalLayout {
-    Text {
-        text: "Accounts page";
+    if Settings.accounts.accounts.length > 0: view := ListView {
+        for accounts_row in Settings.grid-accounts(view.visible-width, Settings.accounts.accounts): HorizontalLayout {
+            for account in accounts-row: AccountTile {
+                width: view.visible-width / ceil(view.visible-width / ((30 - Settings.settings.instance_size) * 15px));
+                account: account;
+            }
+        }
+    }
+
+    HorizontalLayout {
+        init => {
+            if Settings.accounts.accounts.length == 0 {
+                Settings.get-accounts();
+            }
+        }
     }
 }

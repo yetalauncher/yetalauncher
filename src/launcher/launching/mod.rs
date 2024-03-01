@@ -19,14 +19,14 @@ struct Args {
 }
 
 impl SimpleInstance {
-    pub async fn launch(&self, settings: &AppSettings) -> Result<(), String> {
+    pub async fn launch(&self, settings: &AppSettings, accounts: &mut Accounts) -> Result<(), String> {
         let SimpleInstance { minecraft_path, id, mc_version, .. } = self.clone();
         let notifier = Notifier::new(&format!("{id}_status"));
         info!("Launching: {minecraft_path:?}, Version: {mc_version}, id: {id}");
 
         let client = Client::new();
         let java = self.get_java(settings, &client).await.unwrap();
-        let args = self.get_arguments(&java, &client).await?;
+        let args = self.get_arguments(java, accounts, &client).await?;
         let additional_args = java.get_args();
     
         debug!("Args: {:#?}\nCustom Args: {}", args, additional_args);
@@ -57,13 +57,13 @@ impl SimpleInstance {
         Ok(())
     }
     
-    async fn get_arguments(&self, java: &JavaDetails, client: &Client) -> Result<Args, String> {
+    async fn get_arguments(&self, java: &JavaDetails, accounts: &mut Accounts, client: &Client) -> Result<Args, String> {
         let loader = self.modloader.typ;
     
         let mut account = Accounts::get_active_account()
             .ok_or("Could not get the selected account!".to_string())?;
         
-        account.refresh(&client, false).await;
+        account.refresh(accounts, &client, false).await;
     
         info!("Getting version details for {}", self.mc_version);
         let compact_version = MCVersionDetails::from_id(&self.mc_version, &client)

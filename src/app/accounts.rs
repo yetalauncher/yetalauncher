@@ -3,13 +3,25 @@ use std::{io::Error, fs::{self, create_dir_all}, path::PathBuf};
 use log::*;
 use slint::{ModelRc, VecModel};
 
-use crate::{launcher::authentication::auth_structs::*, slint_generatedMainWindow::{SlMCAccount, SlMCSkin}};
+use crate::{launcher::authentication::auth_structs::*, slint_generatedMainWindow::{SlMCAccount, SlMCSkin, SlAccounts}};
 
 use super::{consts::ACCOUNT_FILE_NAME, slint_utils::SlintOption, utils::get_config_dir};
 
 
 
 impl Accounts {
+    pub fn to_slint(&self) -> SlAccounts {
+        SlAccounts {
+            selected_index: SlintOption::from(self.selected_index.clone().map(|i| i as i32)).into(),
+            accounts: ModelRc::new(VecModel::from(
+                self.accounts.iter()
+                .enumerate()
+                .map(|(i, acc)| acc.to_slint(i as i32))
+                .collect::<Vec<_>>()
+            ))
+        }
+    }
+
     pub fn get() -> Accounts {
         let accounts_path = Self::get_path();
     
@@ -64,32 +76,33 @@ impl Accounts {
         Ok(())
     }
 
-    pub fn update_account(account: MCAccount, new_data: MCAccount) {
-        let mut acc_list = Accounts::get();
-
-        for acc in acc_list.accounts.iter_mut() {
+    pub fn update_account(&mut self, account: MCAccount, new_data: MCAccount) {
+        for acc in self.accounts.iter_mut() {
             if *acc == account {
                 *acc = new_data;
                 break;
             }
         }
-
-        acc_list.save();
+        self.save();
     }
 
-    pub fn remove_account(index: usize) {
-        let mut acc_list = Accounts::get();
+    pub fn remove_account(&mut self, index: usize) {
+        self.accounts.remove(index);
+        self.save();
+    }
 
-        acc_list.accounts.remove(index);
-        acc_list.save();
+    pub fn set_selected_index(&mut self, index: u32) {
+        self.selected_index = Some(index);
+        self.save()
     }
 }
 
 impl MCAccount {
-    pub fn to_slint(&self) -> SlMCAccount {
+    pub fn to_slint(&self, index: i32) -> SlMCAccount {
         SlMCAccount {
             username: self.mc_profile.name.to_string().into(),
             uuid: self.mc_profile.id.to_string().into(),
+            index,
             capes: ModelRc::new(VecModel::from(
                 self.mc_profile.capes.iter().map(
                     |cape| (cape.id.to_string().into(), )

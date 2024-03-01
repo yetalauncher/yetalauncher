@@ -6,6 +6,7 @@ export component IconButton inherits VerticalLayout {
     in property <string> text;
     in property <image> icon;
     in property <angle> rotation: 0;
+    in property <brush> color: Palette.primary;
     out property <bool> has-hover <=> area.has-hover;
     callback clicked <=> area.clicked;
 
@@ -13,7 +14,7 @@ export component IconButton inherits VerticalLayout {
     padding-right: 4px;
 
     Rectangle { // Has to be a separate element because there's no margin property 
-        background: area.has-hover ? Palette.primary : Palette.bg-secondary;
+        background: area.has-hover ? color : Palette.bg-secondary;
         preferred-height: 32px;
         border-radius: 6px;
         width: box.preferred-width;
@@ -34,7 +35,7 @@ export component IconButton inherits VerticalLayout {
                     duration: 150ms;
                 }
             }
-            Text {
+            if text != "": Text {
                 text: text;
                 color: Palette.text;
                 overflow: TextOverflow.clip;
