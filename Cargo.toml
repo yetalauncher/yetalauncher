@@ -14,6 +14,7 @@ fastrand = "2.0.1"
 image = "0.24.9"
 jars = "0.1.1"
 log = "0.4.20"
+open = "5.1.0"
 reqwest = { version = "0.11.23", features = ["json"] }
 rfd = { version = "0.13.0", default-features = false, features = ["tokio", "xdg-portal"] }
 serde = { version = "1.0.196", features = ["derive"] }

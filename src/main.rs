@@ -7,9 +7,9 @@ use rfd::AsyncFileDialog;
 use simple_logger::SimpleLogger;
 use slint::{spawn_local, Model, ModelRc, PlatformError, VecModel};
 use clone_macro::clone;
-use tokio::runtime::Runtime;
+use tokio::{runtime::Runtime, sync::mpsc};
 
-use crate::{app::{settings::AppSettings, slint_utils::SlintOption}, launcher::{instances, java::{get_java_version, JavaDetails}, launching::mc_structs::{MCSimpleVersion, MCVersionDetails, MCVersionList}}};
+use crate::{app::{settings::AppSettings, slint_utils::SlintOption}, launcher::{authentication::add_account, instances, java::{get_java_version, JavaDetails}, launching::mc_structs::{MCSimpleVersion, MCVersionDetails, MCVersionList}}};
 
 slint::include_modules!();
 pub use slint_generatedMainWindow::*;
@@ -248,6 +248,20 @@ impl YetaLauncher {
             let mut app = app.write().unwrap();
             app.accounts.remove_account(index as usize);
             app.sync_accounts(&window);
+        }));
+
+        settings.on_add_account(clone!([rt, app, window], move || {
+            spawn_local(clone!([rt, app, window], async move {
+                let _guard = rt.enter();
+                let (sender, mut receiver) = mpsc::unbounded_channel();
+
+                add_account(rt, app.clone(), sender).await;
+
+                if let Some(()) = receiver.recv().await {
+                    debug!("Received account on_complete, syncing...");
+                    app.write().unwrap().sync_accounts(&window);
+                }
+            })).unwrap();
         }));
 
 

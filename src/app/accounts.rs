@@ -1,4 +1,4 @@
-use std::{io::Error, fs::{self, create_dir_all}, path::PathBuf};
+use std::{fs::{self, create_dir_all}, path::PathBuf};
 
 use log::*;
 use slint::{ModelRc, VecModel};
@@ -26,7 +26,9 @@ impl Accounts {
         let accounts_path = Self::get_path();
     
         if let Ok(file) = fs::read_to_string(&accounts_path) {
-            if let Ok(account_list) = serde_json::from_str(&file) {
+            if let Ok(account_list) = serde_json::from_str::<Accounts>(&file) {
+                debug!("Successfully lodaded {} accounts", account_list.accounts.len());
+
                 return account_list
             }
         }
@@ -38,6 +40,14 @@ impl Accounts {
     
         fs::write(accounts_path, serde_json::to_string_pretty(&fallback_list).unwrap()).expect("Failed to write to accounts file");
         fallback_list
+    }
+
+    pub fn save(&self) {
+        debug!("Saving accounts...");
+        fs::write(
+            Self::get_path(), 
+            serde_json::to_string_pretty(self).expect("Failed to serialize accounts to json")
+        ).expect("Failed to write to accounts.json");
     }
 
     fn get_path() -> PathBuf {
@@ -60,20 +70,22 @@ impl Accounts {
         } else { None }
     }
 
-    pub fn save(&self) {
-        debug!("Saving accounts...");
-        fs::write(
-            Self::get_path(), 
-            serde_json::to_string_pretty(self).expect("Failed to serialize accounts to json")
-        ).expect("Failed to write to accounts.json");
-    }
+    pub fn save_new_account(&mut self, account: MCAccount) {
+        let existing = self.accounts.iter_mut()
+        .enumerate()
+        .find(
+            |(_, acc)| acc.mc_profile.id == account.mc_profile.id
+        );
 
-    pub fn save_new_account(account: MCAccount) -> Result<(), Error> {
-        let mut acc_list = Accounts::get();
-        acc_list.accounts.push(account);
-        acc_list.selected_index = Some((acc_list.accounts.len() - 1) as u32);
-        acc_list.save();
-        Ok(())
+        if let Some((i, acc)) = existing {
+            *acc = account;
+            self.selected_index = Some(i as u32);
+            self.save();
+        } else {
+            self.accounts.push(account);
+            self.selected_index = Some((self.accounts.len() - 1) as u32);
+            self.save();
+        }
     }
 
     pub fn update_account(&mut self, account: MCAccount, new_data: MCAccount) {

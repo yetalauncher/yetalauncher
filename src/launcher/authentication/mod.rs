@@ -1,12 +1,15 @@
+use std::sync::{Arc, RwLock};
+
 use afire::{Server, Method, Response, Status};
 use chrono::{Utc, Duration};
+use clone_macro::clone;
 use log::*;
 use reqwest::Client;
 use serde_json::json;
-use tokio::runtime::Handle;
+use tokio::{runtime::Handle, sync::mpsc};
 use uuid::Uuid;
 
-use crate::{app::{consts::{MS_CLIENT_ID, REDIRECT_PORT}, utils::{NotificationState, Notifier}}, launcher::authentication::auth_structs::*};
+use crate::{app::{consts::{MS_CLIENT_ID, REDIRECT_PORT}, utils::{NotificationState, Notifier}}, launcher::authentication::auth_structs::*, YetaLauncher};
 
 pub mod auth_structs;
 
@@ -45,38 +48,48 @@ fn get_mc_profile_url() -> String {
 
 
 
-pub async fn add_account() {
-    let mut redirect_server = Server::<()>::new("127.0.0.1", REDIRECT_PORT);
-
+pub async fn add_account(rt: Handle, app: Arc<RwLock<YetaLauncher>>, on_completion: mpsc::UnboundedSender<()>) {
     let notifier = Notifier::new("login_status");
-
     notifier.notify("Awaiting login", NotificationState::Running);
-    tokio::task::spawn(async move {
-        redirect_server.route(Method::GET, "/", move |req| {
-            if let Some(code) = req.query.get("code") {
-                info!("Code obtained!");
-                notifier.notify("Beginning login process...", NotificationState::Running);
-                Handle::current().block_on(add_account_code(code, &notifier));
-                Response::new()
-                    .text("You may close this window now.")
-                    .status(Status::Ok)
-            } else {
-                error!("Getting Code failed!");
-                notifier.notify("Failed getting code from response!", NotificationState::Error);
-                Response::new()
-                    .text("Failed to get the authentication code!")
-                    .status(Status::NotFound)
-            }
-        });
 
+    if let Err(err) = open::that(get_login_url()) {
+        error!("Failed to open login page in default browser: {err}");
+    }
+
+    let mut redirect_server = Server::<()>::new("127.0.0.1", REDIRECT_PORT).keep_alive(false);
+
+    redirect_server.route(Method::GET, "/", clone!([rt, app], move |req| {
+        if let Some(code) = req.query.get("code") {
+            info!("Code obtained!");
+            notifier.notify("Beginning login process...", NotificationState::Running);
+
+            rt.spawn(clone!([{ code.to_string() } as code, notifier, app, on_completion], async move {
+                add_account_code(&code, &notifier, app).await;
+                on_completion.send(()).unwrap();
+            }));
+
+            Response::new()
+            .text("You may close this tab now.")
+            .status(Status::Ok)
+        } else {
+            error!("Getting Code failed!");
+            notifier.notify("Failed getting code from response!", NotificationState::Error);
+
+            Response::new()
+            .text("Failed to get the authentication code!")
+            .status(Status::NotFound)
+        }
+    }));
+
+    std::thread::spawn(move || {
         info!("Starting auth redirect HTTP server on port {REDIRECT_PORT}...");
         if let Err(e) = redirect_server.start() {
             error!("Starting redirect server failed: {e}")
         };
-    }).await.unwrap();
+    });
 }
 
-async fn add_account_code(code: &str, notifier: &Notifier) {
+async fn add_account_code(code: &str, notifier: &Notifier, app: Arc<RwLock<YetaLauncher>>) {
     info!("Started adding new Minecraft account!");
     let client = Client::new();
 
@@ -124,9 +137,7 @@ async fn add_account_code(code: &str, notifier: &Notifier) {
     // trace!("{:#?}", mc_account);
     info!("Saving new Minecraft account...");
     notifier.notify("Saving new account...", NotificationState::Running);
-    if let Err(e) = Accounts::save_new_account(mc_account) {
-        error!("Error occured while saving new account: {e}")
-    }
+    Accounts::save_new_account(&mut app.write().unwrap().accounts, mc_account);
 
     notifier.notify(&String::from_iter(["Successfully added account \"", &username, "\"!"]), NotificationState::Success);
     info!("Successfully added new account.");
