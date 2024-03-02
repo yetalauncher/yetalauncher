@@ -2,6 +2,7 @@ use std::{path::PathBuf, process::Command};
 
 use log::{*};
 use reqwest::Client;
+use tokio::runtime::Handle;
 
 use crate::{app::{settings::AppSettings, utils::{get_classpath_separator, get_library_dir, NotificationState, Notifier}}, launcher::{authentication::auth_structs::Accounts, launching::mc_structs::*}};
 
@@ -18,6 +19,7 @@ struct Args {
     main_class: String
 }
 
+
 impl SimpleInstance {
     pub async fn launch(&self, settings: &AppSettings, accounts: &mut Accounts) -> Result<(), String> {
         let SimpleInstance { minecraft_path, id, mc_version, .. } = self.clone();
@@ -31,7 +33,8 @@ impl SimpleInstance {
     
         debug!("Args: {:#?}\nCustom Args: {}", args, additional_args);
         info!("Launching NOW!");
-    
+
+
         let mut process = Command::new(&java.path)
         .current_dir(&minecraft_path)
         .args(additional_args.split_whitespace())
@@ -41,20 +44,23 @@ impl SimpleInstance {
         .spawn()
         .map_err(|err| format!("Failed to run Minecraft command: {err}"))?;
     
-        notifier.notify("Instance launched successfully!", NotificationState::Success);
-    
-        let exit_status = process.wait().expect("Failed to wait on Java process! How did this happen?");
-        info!("Exited with status: {}", exit_status);
-    
-        if exit_status.success() {
-            info!("{minecraft_path:?} exited successfully.");
-            notifier.notify("Instance exited successfully.", NotificationState::Success);
-        } else {
-            warn!("{minecraft_path:?} exited (crashed) with status {}", exit_status);
-            notifier.notify(&format!("Instance crashed with code {}", exit_status.code().unwrap_or(323)), NotificationState::Error);
-        }
-    
-        Ok(())
+
+        Handle::current().spawn(async move {
+            notifier.notify("Instance launched successfully!", NotificationState::Success);
+        
+            let exit_status = process.wait().expect("Failed to wait on Java process! How did this happen?");
+            info!("Exited with status: {}", exit_status);
+        
+            if exit_status.success() {
+                info!("{minecraft_path:?} exited successfully.");
+                notifier.notify("Instance exited successfully.", NotificationState::Success);
+            } else {
+                warn!("{minecraft_path:?} exited (crashed) with status {}", exit_status);
+                notifier.notify(&format!("Instance crashed with code {}", exit_status.code().unwrap_or(323)), NotificationState::Error);
+            }
+
+            Ok(())
+        }).await.unwrap()
     }
     
     async fn get_arguments(&self, java: &JavaDetails, accounts: &mut Accounts, client: &Client) -> Result<Args, String> {
@@ -120,7 +126,7 @@ impl SimpleInstance {
             ("${version_type}", version.typ),
     
             ("${natives_directory}", minecraft_path.join("natives").to_string_lossy().to_string()),
-            ("${launcher_name}", "yamcl".to_string()),
+            ("${launcher_name}", "yetalauncher".to_string()),
             ("${launcher_version}", "323".to_string()),
             ("${game_directory}", minecraft_path.to_string_lossy().to_string()),
             ("${user_type}", "msa".to_string()),
@@ -165,12 +171,12 @@ impl SimpleInstance {
         .find(|&java| {
             java.minecraft_versions.max.as_ref().map_or(
                 false, 
-                |max| max.release_time > version.release_time
+                |max| max.release_time >= version.release_time
             )
             &&
             java.minecraft_versions.min.as_ref().map_or(
                 false, 
-                |min| min.release_time < version.release_time
+                |min| min.release_time <= version.release_time
             )
         }).ok_or_else(
             || "Could not find Java to use for this version in the settings!".to_string()

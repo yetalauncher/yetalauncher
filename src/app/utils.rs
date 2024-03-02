@@ -2,7 +2,7 @@ use std::{io::Cursor, path::PathBuf};
 
 use log::*;
 use reqwest::Client;
-use tokio::fs::{self, create_dir_all};
+use tokio::{fs::{self, create_dir_all, File}, io};
 use sha1_smol::Sha1;
 use dirs::{config_dir, data_dir};
 
@@ -14,8 +14,7 @@ pub async fn download_file_checked(client: &Client, checksum: Option<&String>, p
             let contents_checksum = Sha1::from(contents).digest().to_string();
             &contents_checksum != csum
         } else { true }
-    } else { false }
-    {
+    } else { false } {
         download_file(client, path, url).await
     } else {
         debug!("Skipped downloading {}", path.to_string_lossy())
@@ -30,9 +29,9 @@ async fn download_file(client: &Client, path: &PathBuf, url: &String) {
             create_dir_all(parent_path).await.expect(&format!("Failed to create directories: {}", parent_path.to_string_lossy()));
         }
     }
-    let mut file = std::fs::File::create(path).expect(&format!("Failed create file: {}", path.to_string_lossy()));
+    let mut file = File::create(path).await.expect(&format!("Failed create file: {}", path.to_string_lossy()));
     let mut content = Cursor::new(response.bytes().await.unwrap());
-    std::io::copy(&mut content, &mut file).expect(&format!("Failed to write to {}", path.to_string_lossy()));
+    io::copy(&mut content, &mut file).await.expect(&format!("Failed to write to {}", path.to_string_lossy()));
 }
 
 pub fn maven_identifier_to_path(identifier: &str) -> String {
