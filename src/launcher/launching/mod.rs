@@ -119,7 +119,7 @@ impl SimpleInstance {
             ("${assets_index_name}", version.asset_index.id),
             ("${version_type}", version.typ),
     
-            ("${natives_directory}", format!("{minecraft_path:?}/natives")),
+            ("${natives_directory}", minecraft_path.join("natives").to_string_lossy().to_string()),
             ("${launcher_name}", "yamcl".to_string()),
             ("${launcher_version}", "323".to_string()),
             ("${game_directory}", minecraft_path.to_string_lossy().to_string()),
