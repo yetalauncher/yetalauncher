@@ -1,5 +1,6 @@
 use std::sync::{Arc, RwLock};
 
+use app::notifier::InternalNotifier;
 use launcher::{authentication::auth_structs::Accounts, instances::SimpleInstance};
 use log::*;
 use reqwest::Client;
@@ -8,8 +9,9 @@ use simple_logger::SimpleLogger;
 use slint::{spawn_local, Model, ModelRc, PlatformError, VecModel};
 use clone_macro::clone;
 use tokio::{runtime::Runtime, sync::mpsc};
+use tokio_util::sync::CancellationToken;
 
-use crate::{app::{settings::AppSettings, slint_utils::SlintOption}, launcher::{authentication::add_account, instances, java::{get_java_version, JavaDetails}, launching::mc_structs::{MCSimpleVersion, MCVersionDetails, MCVersionList}}};
+use crate::{app::{notifier::Notif, settings::AppSettings, slint_utils::SlintOption}, launcher::{authentication::add_account, instances, java::{get_java_version, JavaDetails}, launching::mc_structs::{MCSimpleVersion, MCVersionDetails, MCVersionList}}};
 
 slint::include_modules!();
 pub use slint_generatedMainWindow::*;
@@ -30,6 +32,8 @@ fn main() {
 
     app.run().expect("YetaLauncher failed to start!");
 
+
+    info!("Exiting...");
 }
 
 #[derive(Debug)]
@@ -46,9 +50,20 @@ impl YetaLauncher {
         let runtime = Runtime::new().unwrap();
         let rt = runtime.handle().clone();
 
+        let mut int_notifier = InternalNotifier::new();
+        let notifier = int_notifier.make_notifier();
+        let cancel_token = CancellationToken::new();
+
         let settings = window.global::<Settings>();
 
         settings.set_settings(app.read().unwrap().settings.to_slint());
+
+        rt.spawn(clone!([cancel_token], async move {
+            int_notifier.subscribe(cancel_token, |notifications| {
+                debug!("notifications: {notifications:?}") // temp
+            }).await;
+        }));
+
 
         settings.on_update_instance_path(clone!([window, app, rt], move || {
             spawn_local(clone!([window, app, rt], async move {
@@ -267,6 +282,8 @@ impl YetaLauncher {
 
         info!("Starting...");
         window.run()?;
+
+        cancel_token.cancel();
         Ok(())
     }
 
