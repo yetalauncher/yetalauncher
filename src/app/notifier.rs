@@ -4,6 +4,9 @@ use log::*;
 use tokio::{sync::mpsc::*, time::sleep};
 use tokio_util::sync::CancellationToken;
 
+use crate::slint_generatedMainWindow::{SlNotif, SlNotifState};
+
+
 #[derive(Debug)]
 pub struct InternalNotifier {
     receiver: UnboundedReceiver<InternalNotif>,
@@ -28,7 +31,8 @@ pub struct Notif {
 #[derive(Debug, Clone)]
 struct InternalNotif {
     inner: Notif,
-    id: u32
+    id: u32,
+    typ: InternalNotifType
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -37,6 +41,12 @@ pub enum NotificationState {
     Success,
     Warning,
     Error
+}
+
+#[derive(Debug, Clone)]
+enum InternalNotifType {
+    Schedule,
+    Remove
 }
 
 
@@ -57,7 +67,8 @@ impl NotifSender {
     pub fn send(&self, notif: Notif) {
         self.notify(InternalNotif {
             inner: notif,
-            id: self.id
+            id: self.id,
+            typ: InternalNotifType::Schedule
         })
     }
 
@@ -90,38 +101,47 @@ impl InternalNotifier {
         loop {
             tokio::select! {
                 _ = cancel.cancelled() => break,
-                Some(notif) = self.receiver.recv() => {
-                    let exists = self.notifications.iter_mut().find(
-                        |other| other.id == notif.id 
-                    );
-
-                    let temp_clone = notif.clone();
-                    
-                    if let Some(existing) = exists {
-                        *existing = notif;
-                    } else {
-                        self.notifications.push(notif);
-                    }
-
-                    on_update(self.notifications.iter().map(|n| &n.inner).collect());
-
-                    let timeout = match &temp_clone.inner.status {
-                        NotificationState::Success => Some(3),
-                        NotificationState::Warning => Some(7),
-                        NotificationState::Error => Some(10),
-                        _ => None
-                    };
-
-                    if let Some(secs) = timeout {
-                        sleep(Duration::from_secs(secs)).await;
+                Some(notif) = self.receiver.recv() => match notif.typ {
+                    InternalNotifType::Remove => {
                         let index = self.notifications.iter().position(
-                            |notif| notif.id == temp_clone.id && notif.inner.status == temp_clone.inner.status
+                            |other| other.id == notif.id && other.inner.status == notif.inner.status
                         );
 
                         if let Some(i) = index {
                             self.notifications.remove(i);
-                            
-                            on_update(self.notifications.iter().map(|n| &n.inner).collect());
+                        }
+
+                        on_update(self.notifications.iter().map(|n| &n.inner).collect());
+                    },
+                    InternalNotifType::Schedule => {
+                        let exists = self.notifications.iter_mut().find(
+                            |other| other.id == notif.id 
+                        );
+    
+                        let temp_clone = notif.clone();
+                        
+                        if let Some(existing) = exists {
+                            *existing = notif;
+                        } else {
+                            self.notifications.push(notif);
+                        }
+    
+                        on_update(self.notifications.iter().map(|n| &n.inner).collect());
+    
+                        let timeout = match &temp_clone.inner.status {
+                            NotificationState::Success => Some(3),
+                            NotificationState::Warning => Some(7),
+                            NotificationState::Error => Some(10),
+                            _ => None
+                        };
+    
+                        if let Some(secs) = timeout {
+                            let sender = self.sender.clone();
+
+                            tokio::spawn(async move {
+                                sleep(Duration::from_secs(secs)).await;
+                                sender.send(temp_clone.with_typ(InternalNotifType::Remove))
+                            });
                         }
                     }
                 }
@@ -130,9 +150,31 @@ impl InternalNotifier {
     }
 }
 
-impl Notif {
-    pub fn to_slint(&self) {
+impl InternalNotif {
+    fn with_typ(self, typ: InternalNotifType) -> Self {
+        Self { typ, ..self }
+    }
+}
 
+impl Notif {
+    pub fn to_slint(&self) -> SlNotif {
+        SlNotif {
+            text: self.text.to_string().into(),
+            progress: (self.progress as i32).into(),
+            max_progress: (self.max_progress as i32).into(),
+            status: self.status.to_slint(),
+        }
+    }
+}
+
+impl NotificationState {
+    pub fn to_slint(&self) -> SlNotifState {
+        match self {
+            NotificationState::Running => SlNotifState::Running,
+            NotificationState::Success => SlNotifState::Success,
+            NotificationState::Warning => SlNotifState::Warning,
+            NotificationState::Error => SlNotifState::Error
+        }
     }
 }
 

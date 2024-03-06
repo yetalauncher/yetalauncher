@@ -58,11 +58,23 @@ impl YetaLauncher {
 
         settings.set_settings(app.read().unwrap().settings.to_slint());
 
-        rt.spawn(clone!([cancel_token], async move {
-            int_notifier.subscribe(cancel_token, |notifications| {
-                debug!("notifications: {notifications:?}") // temp
-            }).await;
+
+        rt.spawn(clone!([cancel_token, { window.as_weak() } as window], async move {
+            int_notifier.subscribe(cancel_token, clone!([window], move |notifications| {
+                let slint_notifs: Vec<SlNotif> = notifications.iter().map(
+                    |notif| notif.to_slint()
+                ).collect();
+
+                slint::invoke_from_event_loop(clone!([window], move || {
+                    window.unwrap()
+                    .global::<App>()
+                    .set_notifications(
+                        ModelRc::new(VecModel::from(slint_notifs))
+                    );
+                })).unwrap();
+            })).await;
         }));
+
 
 
         settings.on_update_instance_path(clone!([window, app, rt], move || {
