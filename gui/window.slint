@@ -8,6 +8,7 @@ import { AccountsPage } from "pages/accounts.slint";
 import { CreatePage } from "pages/create.slint";
 
 import "../resources/fonts/Nunito-Medium.ttf";
+import { NotifContainer } from "widgets/notif_container.slint";
 
 export component MainWindow inherits Window {
     in-out property <Pages> page <=> App.page;
@@ -28,6 +29,7 @@ export component MainWindow inherits Window {
         if page == Pages.Accounts: AccountsPage {}
         if page == Pages.Settings: SettingsPage {}
     }
+    NotifContainer { x: 4px; y: 4px; z: 50; }
 
 }
 

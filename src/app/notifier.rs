@@ -25,6 +25,7 @@ pub struct Notif {
     pub text: String,
     pub progress: u32,
     pub max_progress: u32,
+    pub in_view: bool,
     pub status: NotificationState
 }
 
@@ -46,6 +47,8 @@ pub enum NotificationState {
 #[derive(Debug, Clone)]
 enum InternalNotifType {
     Schedule,
+    FadeIn,
+    FadeOut,
     Remove
 }
 
@@ -101,19 +104,9 @@ impl InternalNotifier {
         loop {
             tokio::select! {
                 _ = cancel.cancelled() => break,
-                Some(notif) = self.receiver.recv() => match notif.typ {
-                    InternalNotifType::Remove => {
-                        let index = self.notifications.iter().position(
-                            |other| other.id == notif.id && other.inner.status == notif.inner.status
-                        );
-
-                        if let Some(i) = index {
-                            self.notifications.remove(i);
-                        }
-
-                        on_update(self.notifications.iter().map(|n| &n.inner).collect());
-                    },
+                Some(mut notif) = self.receiver.recv() => match notif.typ {
                     InternalNotifType::Schedule => {
+                        info!("Scheduling");
                         let exists = self.notifications.iter_mut().find(
                             |other| other.id == notif.id 
                         );
@@ -121,6 +114,7 @@ impl InternalNotifier {
                         let temp_clone = notif.clone();
                         
                         if let Some(existing) = exists {
+                            notif.inner.in_view = true;
                             *existing = notif;
                         } else {
                             self.notifications.push(notif);
@@ -128,7 +122,21 @@ impl InternalNotifier {
     
                         on_update(self.notifications.iter().map(|n| &n.inner).collect());
     
-                        let timeout = match &temp_clone.inner.status {
+                        let sender = self.sender.clone();
+
+                        tokio::spawn(async move {
+                            sleep(Duration::from_millis(150)).await;
+                            sender.send(temp_clone.with_typ(InternalNotifType::FadeIn))
+                        });
+                    },
+                    InternalNotifType::FadeIn => {
+                        info!("FadeIn");
+                        
+                        self.notifications.iter_mut().find(|n| n.id == notif.id).unwrap().inner.in_view = true;
+
+                        on_update(self.notifications.iter().map(|n| &n.inner).collect());
+
+                        let timeout = match &notif.inner.status {
                             NotificationState::Success => Some(3),
                             NotificationState::Warning => Some(7),
                             NotificationState::Error => Some(10),
@@ -140,9 +148,34 @@ impl InternalNotifier {
 
                             tokio::spawn(async move {
                                 sleep(Duration::from_secs(secs)).await;
-                                sender.send(temp_clone.with_typ(InternalNotifType::Remove))
+                                sender.send(notif.with_typ(InternalNotifType::FadeOut))
                             });
                         }
+                    },
+                    InternalNotifType::FadeOut => {
+                        info!("FadeOut");
+                        self.notifications.iter_mut().find(|n| n.id == notif.id).unwrap().inner.in_view = false;
+
+                        on_update(self.notifications.iter().map(|n| &n.inner).collect());
+
+                        let sender = self.sender.clone();
+
+                        tokio::spawn(async move {
+                            sleep(Duration::from_millis(150)).await;
+                            sender.send(notif.with_typ(InternalNotifType::Remove))
+                        });
+                    },
+                    InternalNotifType::Remove => {
+                        info!("Removing");
+                        let index = self.notifications.iter().position(
+                            |other| other.id == notif.id && other.inner.status == notif.inner.status
+                        );
+
+                        if let Some(i) = index {
+                            self.notifications.remove(i);
+                        }
+
+                        on_update(self.notifications.iter().map(|n| &n.inner).collect());
                     }
                 }
             }
@@ -162,7 +195,8 @@ impl Notif {
             text: self.text.to_string().into(),
             progress: (self.progress as i32).into(),
             max_progress: (self.max_progress as i32).into(),
-            status: self.status.to_slint(),
+            in_view: self.in_view.clone(),
+            status: self.status.to_slint()
         }
     }
 }
@@ -184,6 +218,7 @@ impl Default for Notif {
             text: String::new(),
             progress: 0,
             max_progress: 0,
+            in_view: false,
             status: NotificationState::Running
         }
     }

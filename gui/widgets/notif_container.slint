@@ -1,0 +1,11 @@
+import { App } from "../globals.slint";
+import { Notification } from "notification.slint";
+
+export component NotifContainer inherits VerticalLayout {
+    z: 50;
+    spacing: 4px;
+
+    for notif in App.notifications: Notification {
+        notif: notif;
+    }
+}

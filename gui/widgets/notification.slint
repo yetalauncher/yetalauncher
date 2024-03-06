@@ -1,0 +1,29 @@
+import { SlNotif } from "../structs.slint";
+import { SlNotifState } from "../enums.slint";
+import { Palette } from "../globals.slint";
+
+export component Notification inherits Rectangle {
+    in property <SlNotif> notif;
+
+    x: notif.in-view ? 0px : -self.width;
+    width: text.width + 16px;
+    height: text.height + 12px;
+    background: Palette.bg-primary;
+    border-radius: 6px;
+    border-color: notif.status == SlNotifState.Success ? Palette.ok :
+        notif.status == SlNotifState.Warning ? Palette.warn :
+        notif.status == SlNotifState.Error ? Palette.danger :
+        Palette.bg-tertiary;
+    border-width: 2px;
+
+    text := Text {
+        x: 8px; y: 6px;
+        font-size: 18px;
+        text: notif.text;
+    }
+
+    animate x {
+        duration: 150ms;
+        easing: ease-in;
+    }
+}

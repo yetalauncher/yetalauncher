@@ -1,4 +1,4 @@
-import { SlInstanceType } from "enums.slint";
+import { SlInstanceType, SlNotifState } from "enums.slint";
 
 export struct SlMCVersionDetails {
     id: string,
@@ -55,4 +55,12 @@ export struct SlMCAccount {
 export struct SlAccounts {
     selected_index: [int],
     accounts: [SlMCAccount]
+}
+
+export struct SlNotif {
+    text: string,
+    progress: int,
+    max_progress: int,
+    in_view: bool,
+    status: SlNotifState
 }

@@ -1,5 +1,5 @@
 import { Pages } from "enums.slint";
-import { SlSettings, SlMCVersionDetails, SlSimpleInstance, SlAccounts, SlMCAccount } from "structs.slint";
+import { SlSettings, SlMCVersionDetails, SlSimpleInstance, SlAccounts, SlMCAccount, SlNotif } from "structs.slint";
 
 export global App {
     in-out property <Pages> page;
@@ -9,6 +9,8 @@ export global App {
         page == Pages.Accounts ? "Accounts - YetaLauncher" :
         page == Pages.Settings ? "Settings - YetaLauncher" :
         "YetaLauncher";
+
+    in-out property <[SlNotif]> notifications;
 }
 
 export global Settings {
@@ -42,5 +44,9 @@ export global Palette {
     out property <color> bg-primary: #060606;
     out property <color> bg-secondary: #131416;
     out property <color> bg-tertiary: #202021;
+
+    out property <color> danger: #cc261a;
+    out property <color> warn: #ffbc2b;
+    out property <color> ok: #1dc01d;
 }
 

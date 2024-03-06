@@ -4,7 +4,7 @@ use log::*;
 use serde::{Deserialize, Serialize};
 use slint::{ModelRc, VecModel};
 
-use crate::{slint_generatedMainWindow::*, launcher::java::JavaDetails};
+use crate::{slint_generatedMainWindow::{SlSettings, SlJavaDetails}, launcher::java::JavaDetails};
 
 use super::{consts::SETTINGS_FILE_NAME, slint_utils::SlintOption, utils::get_config_dir};
 
