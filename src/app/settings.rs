@@ -32,7 +32,8 @@ impl AppSettings {
         let file = fs::read_to_string(path).expect("Failed to read settings file!");
         match serde_json::from_str(&file) {
             Ok(settings) => {
-                debug!("Successfully loaded settings: {settings:#?}");
+                debug!("Successfully loaded settings");
+                trace!("Settings: {settings:#?}");
                 settings
             },
             Err(err) => {

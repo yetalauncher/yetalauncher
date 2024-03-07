@@ -106,7 +106,6 @@ impl InternalNotifier {
                 _ = cancel.cancelled() => break,
                 Some(mut notif) = self.receiver.recv() => match notif.typ {
                     InternalNotifType::Schedule => {
-                        info!("Scheduling");
                         let exists = self.notifications.iter_mut().find(
                             |other| other.id == notif.id 
                         );
@@ -125,13 +124,11 @@ impl InternalNotifier {
                         let sender = self.sender.clone();
 
                         tokio::spawn(async move {
-                            sleep(Duration::from_millis(150)).await;
+                            sleep(Duration::from_millis(10)).await;
                             sender.send(temp_clone.with_typ(InternalNotifType::FadeIn))
                         });
                     },
                     InternalNotifType::FadeIn => {
-                        info!("FadeIn");
-                        
                         self.notifications.iter_mut().find(|n| n.id == notif.id).unwrap().inner.in_view = true;
 
                         on_update(self.notifications.iter().map(|n| &n.inner).collect());
@@ -153,7 +150,6 @@ impl InternalNotifier {
                         }
                     },
                     InternalNotifType::FadeOut => {
-                        info!("FadeOut");
                         self.notifications.iter_mut().find(|n| n.id == notif.id).unwrap().inner.in_view = false;
 
                         on_update(self.notifications.iter().map(|n| &n.inner).collect());
@@ -166,7 +162,6 @@ impl InternalNotifier {
                         });
                     },
                     InternalNotifType::Remove => {
-                        info!("Removing");
                         let index = self.notifications.iter().position(
                             |other| other.id == notif.id && other.inner.status == notif.inner.status
                         );

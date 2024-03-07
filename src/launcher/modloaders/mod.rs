@@ -41,7 +41,11 @@ impl ModLoaders {
         match self {
             ModLoaders::Forge => ForgeVersionManifest::get(mc_ver, loader_ver, client).await.map(LoaderManifests::Forge),
             ModLoaders::Fabric => FabricVersionManifest::get(mc_ver, loader_ver, client).await.map(LoaderManifests::Fabric),
-            _ => None,
+            ModLoaders::Vanilla => None,
+            _ => {
+                error!("Currently unsupported modloader found: {self:?}, this will probably result in just Vanilla being launched!");
+                None
+            },
         }
     }
 

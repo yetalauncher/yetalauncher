@@ -12,17 +12,16 @@ export component Sidebar inherits Rectangle {
     width: expanded ? 150px : 52px;
 
     area := TouchArea {
-        VerticalLayout {
+        layout := VerticalLayout {
             SidebarButton { text: "Home"; page: Pages.Home; icon: @image-url("../../resources/tabler-icons/home.svg"); expanded: expanded;}
             SidebarButton { text: "Create"; page: Pages.Create; icon: @image-url("../../resources/tabler-icons/plus.svg"); expanded: expanded;}
             SidebarButton { text: "Accounts"; page: Pages.Accounts; icon: @image-url("../../resources/tabler-icons/user.svg"); expanded: expanded;}
             SidebarButton { text: "Settings"; page: Pages.Settings; icon: @image-url("../../resources/tabler-icons/settings.svg"); expanded: expanded;}
 
-            height: parent.height;
             y: parent.y;
         }
         y: 6px;
-        height: 182px;
+        height: 198px;
     }
 
     animate width {

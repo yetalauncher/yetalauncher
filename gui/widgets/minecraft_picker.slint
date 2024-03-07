@@ -74,38 +74,44 @@ export component MinecraftPicker inherits VerticalLayout {
                     text: "Alphas";
                     enabled: loaded;
                 }
-    
-                if loaded: ListView {
-                    for version in Settings.version_list: Rectangle {
-                        private property <bool> view:
-                        (filter-release.checked && version.typ == "release") ||
-                        (filter-snapshot.checked && version.typ == "snapshot") ||
-                        (filter-beta.checked && version.typ == "old_beta") ||
-                        (filter-alpha.checked && version.typ == "old_alpha");
-                        height: view ? 20px : 0;
-                        background: Palette.bg-tertiary;
-    
-                        if view: Rectangle {
-                            background: area.has-hover ? Palette.primary : Palette.bg-tertiary;
-                            border-radius: 4px;
-    
-                            Text {
-                                text: version.id;
-                            }
-                            area := TouchArea {
-                                mouse-cursor: pointer;
-                                clicked => {
-                                    selected = version;
-                                    expanded = false;
-                                    select();
-                                    popup.close();
+                Rectangle {
+                    background: Palette.bg-secondary;
+                    border-radius: 4px;
+
+                    if loaded: ListView {
+                        for version in Settings.version_list: Rectangle {
+                            private property <bool> view:
+                            (filter-release.checked && version.typ == "release") ||
+                            (filter-snapshot.checked && version.typ == "snapshot") ||
+                            (filter-beta.checked && version.typ == "old_beta") ||
+                            (filter-alpha.checked && version.typ == "old_alpha");
+                            height: view ? 20px : 0;
+                            background: Palette.bg-secondary;
+        
+                            if view: Rectangle {
+                                background: area.has-hover ? Palette.primary : Palette.bg-secondary;
+                                border-radius: 4px;
+        
+                                Text {
+                                    color: Palette.text;
+                                    text: version.id;
+                                }
+                                area := TouchArea {
+                                    mouse-cursor: pointer;
+                                    clicked => {
+                                        selected = version;
+                                        expanded = false;
+                                        select();
+                                        popup.close();
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                if !loaded: Text {
-                    text: "Loading...";
+                    if !loaded: Text {
+                        color: Palette.text;
+                        text: "Loading...";
+                    }
                 }
             }
         }

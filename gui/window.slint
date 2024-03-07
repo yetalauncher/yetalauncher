@@ -6,9 +6,9 @@ import { SettingsPage } from "pages/settings.slint";
 import { HomePage } from "pages/home.slint";
 import { AccountsPage } from "pages/accounts.slint";
 import { CreatePage } from "pages/create.slint";
+import { NotifContainer } from "widgets/notif_container.slint";
 
 import "../resources/fonts/Nunito-Medium.ttf";
-import { NotifContainer } from "widgets/notif_container.slint";
 
 export component MainWindow inherits Window {
     in-out property <Pages> page <=> App.page;
@@ -17,6 +17,8 @@ export component MainWindow inherits Window {
     background: Palette.bg-primary;
     padding: 0;
     default-font-family: "Nunito";
+    default-font-size: 16px;
+    default-font-weight: 500;
 
     Sidebar { x: 0px; z: 5; }
     Rectangle {
@@ -29,8 +31,7 @@ export component MainWindow inherits Window {
         if page == Pages.Accounts: AccountsPage {}
         if page == Pages.Settings: SettingsPage {}
     }
-    NotifContainer { x: 4px; y: 4px; z: 50; }
-
+    NotifContainer { z: 50; parent_height: root.height; }
 }
 
 export { App, Settings }

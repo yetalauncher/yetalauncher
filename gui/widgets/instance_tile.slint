@@ -34,6 +34,7 @@ export component InstanceTile inherits VerticalLayout {
             width: parent.width - 2 * self.x;
             font-size: 20px;
             overflow: elide;
+            color: Palette.text;
             text: instance.name;
         }
 
@@ -41,6 +42,7 @@ export component InstanceTile inherits VerticalLayout {
             x: 4px; y: icon.height + 32px;
             width: parent.width - 2 * self.x;
             font-size: 14px;
+            color: Palette.text;
             text: instance.mc-version + ", " + instance.modloader;
         }
 
@@ -65,6 +67,7 @@ export component InstanceTile inherits VerticalLayout {
 
                 Text {
                     text: "Play";
+                    color: Palette.text;
                     font-weight: 700;
                     font-size: 18px;
                 }

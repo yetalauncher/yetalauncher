@@ -23,11 +23,12 @@ impl Accounts {
     }
 
     pub fn get() -> Accounts {
+        info!("Reading accounts...");
         let accounts_path = Self::get_path();
     
         if let Ok(file) = fs::read_to_string(&accounts_path) {
             if let Ok(account_list) = serde_json::from_str::<Accounts>(&file) {
-                debug!("Successfully lodaded {} accounts", account_list.accounts.len());
+                debug!("Successfully loaded {} account(s)", account_list.accounts.len());
 
                 return account_list
             }

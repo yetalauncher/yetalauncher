@@ -13,7 +13,7 @@ export component AccountTile inherits VerticalLayout {
         border-color: is-selected ? #289e38 : Palette.bg-secondary;
         border-width: 1px;
         background: Palette.bg-secondary;
-        height: icon.height + 78px;
+        height: icon.height + 82px;
     
         icon := Rectangle {
             x: 6px; y: 6px;
@@ -33,6 +33,7 @@ export component AccountTile inherits VerticalLayout {
             width: parent.width - 2 * self.x;
             font-size: 20px;
             overflow: elide;
+            color: Palette.text;
             text: account.username;
         }
 

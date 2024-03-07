@@ -11,7 +11,7 @@ use clone_macro::clone;
 use tokio::{runtime::Runtime, sync::mpsc};
 use tokio_util::sync::CancellationToken;
 
-use crate::{app::{notifier::Notif, settings::AppSettings, slint_utils::SlintOption}, launcher::{authentication::add_account, instances, java::{get_java_version, JavaDetails}, launching::mc_structs::{MCSimpleVersion, MCVersionDetails, MCVersionList}}};
+use crate::{app::{settings::AppSettings, slint_utils::SlintOption}, launcher::{authentication::add_account, instances, java::{get_java_version, JavaDetails}, launching::mc_structs::{MCSimpleVersion, MCVersionDetails, MCVersionList}}};
 
 slint::include_modules!();
 pub use slint_generatedMainWindow::*;
@@ -63,9 +63,11 @@ impl YetaLauncher {
             int_notifier.subscribe(cancel_token, clone!([window], move |notifications| {
                 let slint_notifs: Vec<SlNotif> = notifications.iter().map(
                     |notif| notif.to_slint()
-                ).collect();
+                ).rev().collect();
 
                 slint::invoke_from_event_loop(clone!([window], move || {
+                    trace!("Syncing {} notification(s)", slint_notifs.len());
+
                     window.unwrap()
                     .global::<App>()
                     .set_notifications(
