@@ -1,10 +1,10 @@
-use std::{path::PathBuf, process::Command};
+use std::path::PathBuf;
 
 use log::{*};
 use reqwest::Client;
-use tokio::runtime::Handle;
+use tokio::process::Command;
 
-use crate::{app::{settings::AppSettings, utils::{get_classpath_separator, get_library_dir, NotificationState, Notifier}}, launcher::{authentication::auth_structs::Accounts, launching::mc_structs::*}};
+use crate::{app::{notifier::Notifier, settings::AppSettings, utils::{get_classpath_separator, get_library_dir}}, launcher::{authentication::auth_structs::Accounts, launching::mc_structs::*}};
 
 use super::{authentication::auth_structs::MCAccount, instances::SimpleInstance, java::JavaDetails};
 
@@ -21,14 +21,18 @@ struct Args {
 
 
 impl SimpleInstance {
-    pub async fn launch(&self, settings: &AppSettings, accounts: &mut Accounts) -> Result<(), String> {
-        let SimpleInstance { minecraft_path, id, mc_version, .. } = self.clone();
-        let notifier = Notifier::new(&format!("{id}_status"));
+    pub async fn launch(&self, settings: &AppSettings, accounts: &mut Accounts, mut notifier: Notifier) -> Result<(), String> {
+        let SimpleInstance { minecraft_path, id, mc_version, name, .. } = &self;
+        notifier.set_progress(1, 9);
+
         info!("Launching: {minecraft_path:?}, Version: {mc_version}, id: {id}");
+        notifier.send_msg(&format!("Launching {name}..."));
 
         let client = Client::new();
-        let java = self.get_java(settings, &client).await.unwrap();
-        let args = self.get_arguments(java, accounts, &client).await?;
+        let java = self.get_java(settings, &client).await.map_err(
+            |err| { notifier.send_error(&err); err }
+        )?;
+        let args = self.get_arguments(java, accounts, &client, &mut notifier).await?;
         let additional_args = java.get_args();
     
         debug!("Args: {:#?}\nCustom Args: {}", args, additional_args);
@@ -45,57 +49,69 @@ impl SimpleInstance {
         .map_err(|err| format!("Failed to run Minecraft command: {err}"))?;
     
 
-        Handle::current().spawn(async move {
-            notifier.notify("Instance launched successfully!", NotificationState::Success);
-        
-            let exit_status = process.wait().expect("Failed to wait on Java process! How did this happen?");
-            info!("Exited with status: {}", exit_status);
-        
-            if exit_status.success() {
-                info!("{minecraft_path:?} exited successfully.");
-                notifier.notify("Instance exited successfully.", NotificationState::Success);
-            } else {
-                warn!("{minecraft_path:?} exited (crashed) with status {}", exit_status);
-                notifier.notify(&format!("Instance crashed with code {}", exit_status.code().unwrap_or(323)), NotificationState::Error);
-            }
+        notifier.set_progress(0, 0);
+        notifier.send_success("Instance launched successfully!");
+    
+        let exit_status = process.wait().await.expect("Failed to wait on Java process! How did this happen?");
+        info!("Exited with status: {}", exit_status);
+    
+        if exit_status.success() {
+            info!("{minecraft_path:?} exited successfully.");
+            notifier.make_new().send_success("{name} exited successfully.");
+        } else {
+            warn!("{minecraft_path:?} exited (crashed) with status {}", exit_status);
+            notifier.make_new().send_error(
+                &format!("{name} crashed with code {}", exit_status.code().map_or("None".to_string(), |c| c.to_string())
+            ));
+        }
 
-            Ok(())
-        }).await.unwrap()
+        Ok(())
     }
     
-    async fn get_arguments(&self, java: &JavaDetails, accounts: &mut Accounts, client: &Client) -> Result<Args, String> {
+    async fn get_arguments(&self, java: &JavaDetails, accounts: &mut Accounts, client: &Client, notifier: &mut Notifier) -> Result<Args, String> {
         let loader = self.modloader.typ;
     
-        let mut account = Accounts::get_active_account()
+        notifier.send_progress("Preparing account...", 2);
+        info!("Preparing account...");
+        let account = accounts.get_active_account(client, false).await
             .ok_or("Could not get the selected account!".to_string())?;
         
-        account.refresh(accounts, &client, false).await;
-    
-        info!("Getting version details for {}", self.mc_version);
+
+        notifier.send_progress(&format!("Getting version details for {}...", self.mc_version), 3);
+        info!("Getting version details for {}...", self.mc_version);
         let compact_version = MCVersionDetails::from_id(&self.mc_version, &client)
             .await
             .ok_or("Could not get Minecraft version details!".to_string())?;
     
         debug!("Got compact version info: {:?}", compact_version);
+
+
+        notifier.send_progress(&format!("Getting version manifest for {}...", self.mc_version), 4);
         info!("Getting version manifest from {}", compact_version.url);
-    
         let mut version = compact_version.get_manifest(&client)
             .await
             .ok_or("Could not get Minecraft version manifest!".to_string())?;
     
+
+        notifier.send_progress("Pre-downloading client jar...", 5);
         debug!("Pre-downloading client jar...");
         version.get_client_jar(&client).await;
     
+
+        notifier.send_progress("Getting the modloader manifest...", 6);
         if let Some(mf) = loader.get_manifest(&self.mc_version, &self.modloader.version, &client).await {
             info!("Merging with manifest of {loader} Loader...");
             version.merge_with(mf)
         }
     
         info!("Finished getting manifest.");
-    
+
+
+        notifier.send_progress("Preparing the modloader...", 7);
         loader.prepare_launch(&self.mc_version, &self.modloader.version, &client, &java.path).await;
     
         info!("Beginning argument parsing...");
+        notifier.send_progress("Preparing the game...", 8);
         Ok(
             Self::parse_arguments(
                 Args {
@@ -111,11 +127,11 @@ impl SimpleInstance {
         )
     }
     
-    async fn parse_arguments(args_struct: Args, account: MCAccount, version: MCVersionManifest, minecraft_path: &PathBuf, client: &Client) -> Args {
-        let replacements = vec![
-            ("${auth_player_name}", account.mc_profile.name),
-            ("${auth_uuid}", account.mc_profile.id),
-            ("${auth_access_token}", account.mc_response.access_token),
+    async fn parse_arguments(args_struct: Args, account: &MCAccount, version: MCVersionManifest, minecraft_path: &PathBuf, client: &Client) -> Args {
+        let replacements = [
+            ("${auth_player_name}", account.mc_profile.name.to_string()),
+            ("${auth_uuid}", account.mc_profile.id.to_string()),
+            ("${auth_access_token}", account.mc_response.access_token.to_string()),
             ("${auth_xuid}", account.xsts_response.display_claims.xui[0].uhs.to_string()), // idk what else a "xuid" could be
             ("${user_properties}", "something".to_string()),
     

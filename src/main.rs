@@ -1,6 +1,6 @@
 use std::sync::{Arc, RwLock};
 
-use app::notifier::InternalNotifier;
+use app::notifier::{InternalNotifier, Notifier};
 use launcher::{authentication::auth_structs::Accounts, instances::SimpleInstance};
 use log::*;
 use reqwest::Client;
@@ -36,7 +36,7 @@ fn main() {
     info!("Exiting...");
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct YetaLauncher {
     settings: AppSettings,
     accounts: Accounts,
@@ -173,13 +173,13 @@ impl YetaLauncher {
             })).unwrap();
         }));
 
-        settings.on_get_instances(clone!([window, app, rt], move |force| {
-            spawn_local(clone!([window, app, rt], async move {
+        settings.on_get_instances(clone!([window, app, rt, notifier], move |force| {
+            spawn_local(clone!([window, app, rt, notifier], async move {
                 let _guard = rt.enter();
                 let mut app = app.write().unwrap();
 
                 if app.instances.is_none() || force {
-                    let instances = instances::get_instances(Arc::new(app.settings.clone())).await;
+                    let instances = instances::get_instances(Arc::new(app.settings.clone()), notifier.make_new()).await;
 
                     match instances {
                         Ok(inst) => app.instances = Some(inst),
@@ -227,12 +227,11 @@ impl YetaLauncher {
             })
         }));
 
-        settings.on_launch_instance(clone!([app, rt], move |instance_id| {
-            spawn_local(clone!([app, rt], async move {
-                let _guard = rt.enter();
-                let mut app = app.write().unwrap();
-                app.launch_instance(instance_id).await;
-            })).unwrap();
+        settings.on_launch_instance(clone!([app, rt, notifier], move |instance_id| {
+            rt.spawn(clone!([app, notifier], async move {
+                let mut app = app.write().unwrap().clone();
+                app.launch_instance(instance_id, notifier.make_new()).await;
+            }));
         }));
 
         settings.on_get_accounts(clone!([window, app], move || {
@@ -287,7 +286,6 @@ impl YetaLauncher {
                 add_account(rt, app.clone(), sender).await;
 
                 if let Some(()) = receiver.recv().await {
-                    debug!("Received account on_complete, syncing...");
                     app.write().unwrap().sync_accounts(&window);
                 }
             })).unwrap();
@@ -317,13 +315,13 @@ impl YetaLauncher {
         window.global::<Settings>().set_accounts(self.accounts.to_slint());
     }
 
-    async fn launch_instance(&mut self, instance_id: i32) {
+    async fn launch_instance(&mut self, instance_id: i32, notifier: Notifier) {
         if let Some(instances) = &self.instances {
             let instance = instances.iter()
             .find(|inst| inst.id == instance_id as u32)
             .expect("Could not find instance to launch! How did we get here?");
 
-            instance.launch(&self.settings, &mut self.accounts).await.unwrap();
+            instance.launch(&self.settings, &mut self.accounts, notifier).await.ok();
         }
     }
 }

@@ -1,6 +1,7 @@
 use std::{fs::{self, create_dir_all}, path::PathBuf};
 
 use log::*;
+use reqwest::Client;
 use slint::{ModelRc, VecModel};
 
 use crate::{launcher::authentication::auth_structs::*, slint_generatedMainWindow::{SlMCAccount, SlMCSkin, SlAccounts}};
@@ -62,12 +63,17 @@ impl Accounts {
         accounts_path
     }
 
-    pub fn get_active_account() -> Option<MCAccount> {
-        let acc_list = Self::get();
-
-        if let Some(index) = acc_list.selected_index {
+    pub async fn get_active_account(&mut self, client: &Client, force: bool) -> Option<&MCAccount> {
+        if let Some(index) = self.selected_index {
             let i: usize = index.try_into().unwrap_or(0);
-            acc_list.accounts.into_iter().nth(i)
+            {
+                let account = self.accounts.iter_mut().nth(i);
+                if let Some(acc) = account {
+                    acc.refresh(client, force).await;
+                }
+            }
+            self.save();
+            self.accounts.iter().nth(i)
         } else { None }
     }
 

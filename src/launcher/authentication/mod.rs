@@ -309,8 +309,7 @@ impl MCResponse2 {
 
 
 impl MCAccount {
-    pub async fn refresh(&mut self, accounts: &mut Accounts, client: &Client, force: bool) {
-        let previous = self.clone();
+    pub async fn refresh(&mut self, client: &Client, force: bool) {
         let now = Utc::now();
 
         if self.mc_response.expires_at < now || force {
@@ -328,9 +327,6 @@ impl MCAccount {
             }
             info!("Refreshing Minecraft Token...");
             self.mc_response = self.xsts_response.xsts_to_mc_response(client).await;
-
-            debug!("Saving updated account details...");
-            accounts.update_account(previous, self.clone());
         }
     }
 }

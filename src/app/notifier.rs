@@ -15,9 +15,10 @@ pub struct InternalNotifier {
 }
 
 #[derive(Debug, Clone)]
-pub struct NotifSender {
+pub struct Notifier {
     inner: UnboundedSender<InternalNotif>,
-    id: u32
+    id: u32,
+    progress: Option<(u32, u32)>
 }
 
 #[derive(Debug, Clone)]
@@ -25,8 +26,8 @@ pub struct Notif {
     pub text: String,
     pub progress: u32,
     pub max_progress: u32,
-    pub in_view: bool,
-    pub status: NotificationState
+    pub status: NotificationState,
+    pub in_view: bool
 }
 
 #[derive(Debug, Clone)]
@@ -53,12 +54,17 @@ enum InternalNotifType {
 }
 
 
-impl NotifSender {
+impl Notifier {
     pub fn make_new(&self) -> Self {
         Self {
             inner: self.inner.clone(),
-            id: fastrand::u32(..)
+            id: fastrand::u32(..),
+            progress: None
         }
+    }
+
+    pub fn set_progress(&mut self, cur: u32, max: u32) {
+        self.progress = Some((cur, max))
     }
 
     fn notify(&self, notif: InternalNotif) {
@@ -67,7 +73,7 @@ impl NotifSender {
         ).ok();
     }
 
-    pub fn send(&self, notif: Notif) {
+    pub fn send_notif(&self, notif: Notif) {
         self.notify(InternalNotif {
             inner: notif,
             id: self.id,
@@ -75,11 +81,31 @@ impl NotifSender {
         })
     }
 
-    pub fn send_msg(&self, message: &str) {
-        self.send(Notif {
-            text: message.to_string(),
+    pub fn send(&self, text: &str, status: NotificationState) {
+        self.send_notif(Notif {
+            text: text.to_string(),
+            progress: if let Some((cur, _)) = self.progress { cur } else { 0 },
+            max_progress: if let Some((_, max)) = self.progress { max } else { 0 },
+            status,
             ..Default::default()
         })
+    }
+
+    pub fn send_msg(&self, message: &str) {
+        self.send(message, NotificationState::Running)
+    }
+
+    pub fn send_progress(&mut self, message: &str, progress: u32) {
+        if let Some((prog, _)) = &mut self.progress { *prog = progress }
+        self.send(message, NotificationState::Running)
+    }
+
+    pub fn send_success(&self, message: &str) {
+        self.send(message, NotificationState::Success)
+    }
+
+    pub fn send_error(&self, message: &str) {
+        self.send(message, NotificationState::Error)
     }
 }
 
@@ -93,10 +119,11 @@ impl InternalNotifier {
         }
     }
 
-    pub fn make_notifier(&self) -> NotifSender {
-        NotifSender {
+    pub fn make_notifier(&self) -> Notifier {
+        Notifier {
             inner: self.sender.clone(),
-            id: fastrand::u32(..)
+            id: fastrand::u32(..),
+            progress: None
         }
     }
 

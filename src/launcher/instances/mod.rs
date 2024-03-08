@@ -7,7 +7,7 @@ use chrono::NaiveDateTime;
 use log::{*};
 use serde::{Deserialize, Serialize};
 
-use crate::{app::{settings::AppSettings, slint_utils::SlintOption}, SlInstanceType, SlSimpleInstance};
+use crate::{app::{settings::AppSettings, slint_utils::SlintOption, notifier::Notifier}, SlInstanceType, SlSimpleInstance};
 
 use self::{errors::InstanceGatherError, multimc::*, curseforge::*};
 
@@ -47,7 +47,8 @@ pub enum InstanceType {
 }
 
 
-pub async fn get_instances(settings: Arc<AppSettings>) -> IResult<Vec<SimpleInstance>> {
+pub async fn get_instances(settings: Arc<AppSettings>, notifier: Notifier) -> IResult<Vec<SimpleInstance>> {
+    notifier.send_msg("Scanning instances...");
     let time_start = Instant::now();
 
     let dir = settings.instance_path.as_ref().ok_or(InstanceGatherError::PathUnset)?;
@@ -101,6 +102,8 @@ pub async fn get_instances(settings: Arc<AppSettings>) -> IResult<Vec<SimpleInst
     );
 
     info!("Finished gathering {} instances in {}s", instances.len(), &(Instant::now() - time_start).as_secs_f32().to_string()[..5]);
+    notifier.send_success(&format!("Finished gathering {} instances ({}s)", instances.len(), &(Instant::now() - time_start).as_secs_f32().to_string()[..4]));
+
     Ok(instances)
 }
 

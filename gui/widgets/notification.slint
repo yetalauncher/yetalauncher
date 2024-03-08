@@ -6,25 +6,40 @@ export component Notification inherits Rectangle {
     in property <SlNotif> notif;
 
     x: notif.in-view ? 0px : -self.width;
-    width: text.width + 16px;
-    height: text.height + 12px;
+    width: text.width + 20px;
+    height: text.height + 16px;
     background: Palette.bg-primary;
     border-radius: 6px;
     border-color: notif.status == SlNotifState.Success ? Palette.ok :
         notif.status == SlNotifState.Warning ? Palette.warn :
         notif.status == SlNotifState.Error ? Palette.danger :
         Palette.bg-tertiary;
-    border-width: 2px;
+    border-width: 1px;
 
     text := Text {
-        x: 8px; y: 6px;
+        x: 10px; y: 8px; z: 3;
         font-size: 18px;
         color: Palette.text;
-        text: notif.text;
+        text: notif.max-progress == 0 ? notif.text : notif.text + " [" + notif.progress + "/" + notif.max-progress + "]";
+    }
+
+    if notif.max-progress != 0: Rectangle {
+        x: 1px; y: 1px; z: 1;
+        height: root.height - 2px;
+        width: root.width * (notif.progress / notif.max-progress) - 2px;
+        background: Palette.bg-secondary;
+
+        animate width {
+            duration: 50ms;
+            easing: ease-out;
+        }
     }
 
     animate x {
         duration: 150ms;
         easing: ease-in;
+    }
+    animate border-color {
+        duration: 200ms;
     }
 }
