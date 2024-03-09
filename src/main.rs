@@ -278,12 +278,12 @@ impl YetaLauncher {
             app.sync_accounts(&window);
         }));
 
-        settings.on_add_account(clone!([rt, app, window], move || {
-            spawn_local(clone!([rt, app, window], async move {
+        settings.on_add_account(clone!([rt, app, window, notifier], move || {
+            spawn_local(clone!([rt, app, window, notifier], async move {
                 let _guard = rt.enter();
                 let (sender, mut receiver) = mpsc::unbounded_channel();
 
-                add_account(rt, app.clone(), sender).await;
+                add_account(rt, app.clone(), notifier.make_new(), sender).await;
 
                 if let Some(()) = receiver.recv().await {
                     app.write().unwrap().sync_accounts(&window);

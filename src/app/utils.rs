@@ -52,47 +52,6 @@ pub fn maven_identifier_to_path(identifier: &str) -> String {
     format!("{path}/{raw_name}/{version_path}/{raw_name}-{version}.{extension}")
 }
 
-#[derive(Debug, Clone)]
-pub struct Notifier {
-    #[allow(dead_code)] // for now, until this is reimplemented
-    notif_id: String
-}
-
-#[derive(Debug, Clone)]
-pub struct Notif {
-    pub text: String,
-    pub progress: u32,
-    pub max_progress: u32,
-    pub status: NotificationState
-}
-
-#[derive(Debug, Clone)]
-pub enum NotificationState {
-    Running,
-    Error,
-    Success
-}
-
-impl Notifier {
-    pub fn notify_status(&self, contents: Notif) {
-        info!("Notifying is unimplemented, but: {}, State {:?}, {} of {}", contents.text, contents.status, contents.progress, contents.max_progress);
-    }
-
-    pub fn notify(&self, text: &str, status: NotificationState) {
-        info!("Notifying is unimplemented, but: {}, State {:?}", text, status);
-    }
-
-    pub fn new(notif_id: &str) -> Self {
-        Self { notif_id: notif_id.to_string() }
-    }
-}
-
-impl Notif {
-    pub fn new(text: &str, progress: u32, max_progress: u32, status: NotificationState) -> Self {
-        Self { text: text.to_string(), progress, max_progress, status}
-    }
-}
-
 
 pub fn get_classpath_separator() -> String { String::from(if cfg!(windows) { ";" } else { ":" }) }
 

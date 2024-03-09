@@ -9,12 +9,11 @@ use serde_json::json;
 use tokio::{runtime::Handle, sync::mpsc};
 use uuid::Uuid;
 
-use crate::{app::{consts::{MS_CLIENT_ID, REDIRECT_PORT}, utils::{NotificationState, Notifier}}, launcher::authentication::auth_structs::*, YetaLauncher};
+use crate::{app::{consts::{MS_CLIENT_ID, REDIRECT_PORT}, notifier::Notifier}, launcher::authentication::auth_structs::*, YetaLauncher};
 
 pub mod auth_structs;
 
 
-#[allow(dead_code)] // for now, until this is reimplemented
 fn get_login_url() -> String {
     String::from_iter([
         "https://login.live.com/oauth20_authorize.srf?client_id=",
@@ -48,23 +47,26 @@ fn get_mc_profile_url() -> String {
 
 
 
-pub async fn add_account(rt: Handle, app: Arc<RwLock<YetaLauncher>>, on_completion: mpsc::UnboundedSender<()>) {
-    let notifier = Notifier::new("login_status");
-    notifier.notify("Awaiting login", NotificationState::Running);
+pub async fn add_account(rt: Handle, app: Arc<RwLock<YetaLauncher>>, notifier: Notifier, on_completion: mpsc::UnboundedSender<()>) {
+    info!("Beginning login process...");
 
     if let Err(err) = open::that(get_login_url()) {
         error!("Failed to open login page in default browser: {err}");
+        notifier.send_error("Failed to open auth link in a web browser!");
+        return;
     }
 
     let mut redirect_server = Server::<()>::new("127.0.0.1", REDIRECT_PORT).keep_alive(false);
 
+    notifier.send_msg("Awaiting login... Check your web browser!");
+
     redirect_server.route(Method::GET, "/", clone!([rt, app], move |req| {
         if let Some(code) = req.query.get("code") {
             info!("Code obtained!");
-            notifier.notify("Beginning login process...", NotificationState::Running);
+            notifier.send_msg("Beginning login process...");
 
             rt.spawn(clone!([{ code.to_string() } as code, notifier, app, on_completion], async move {
-                add_account_code(&code, &notifier, app).await;
+                add_account_code(&code, notifier, app).await;
                 on_completion.send(()).unwrap();
             }));
 
@@ -73,7 +75,7 @@ pub async fn add_account(rt: Handle, app: Arc<RwLock<YetaLauncher>>, on_completi
             .status(Status::Ok)
         } else {
             error!("Getting Code failed!");
-            notifier.notify("Failed getting code from response!", NotificationState::Error);
+            notifier.send_error("Response did not contain code!");
 
             Response::new()
             .text("Failed to get the authentication code!")
@@ -89,39 +91,41 @@ pub async fn add_account(rt: Handle, app: Arc<RwLock<YetaLauncher>>, on_completi
     });
 }
 
-async fn add_account_code(code: &str, notifier: &Notifier, app: Arc<RwLock<YetaLauncher>>) {
+async fn add_account_code(code: &str, mut notifier: Notifier, app: Arc<RwLock<YetaLauncher>>) {
     info!("Started adding new Minecraft account!");
     let client = Client::new();
 
+    notifier.set_progress(1, 7);
     info!("Getting Microsoft Auth response...");
-    notifier.notify("Getting Microsoft Auth reponse...", NotificationState::Running);
+    notifier.send_msg("Getting Microsoft Auth reponse...");
     let msa_response = MSAResponse2::from_code(code, &client).await;
     // trace!("{:#?}", msa_response);
 
     info!("Getting Xbox Live Auth response...");
-    notifier.notify("Getting Xbox Live Auth reponse...", NotificationState::Running);
+    notifier.send_progress("Getting Xbox Live Auth reponse...", 2);
     let xbl_response = msa_response.get_xbl_reponse(&client).await;
     // trace!("{:#?}", xbl_response);
 
     info!("Getting Xsts Auth response...");
-    notifier.notify("Getting Xsts Auth reponse...", NotificationState::Running);
+    notifier.send_progress("Getting Xsts Auth reponse...", 3);
     let xsts_response = xbl_response.xbl_to_xsts_response(&client).await;
     // trace!("{:#?}", xsts_response);
 
     info!("Getting Minecraft Auth response...");
-    notifier.notify("Getting Minecraft Auth reponse...", NotificationState::Running);
+    notifier.send_progress("Getting Minecraft Auth reponse...", 4);
     let mc_response = xsts_response.xsts_to_mc_response(&client).await;
     // trace!("{:#?}", mc_response);
 
     info!("Checking Minecraft ownership...");
-    notifier.notify("Checking Minecraft ownership...", NotificationState::Running);
+    notifier.send_progress("Checking Minecraft ownership...", 5);
     if !mc_response.has_mc_ownership(&client).await {
-        notifier.notify("Account does not own Minecraft!", NotificationState::Error);
+        notifier.set_progress(0, 0);
+        notifier.send_error("Account does not own Minecraft!");
         return;
     }
 
     info!("Getting Minecraft account...");
-    notifier.notify("Getting Minecraft account...", NotificationState::Running);
+    notifier.send_progress("Getting Minecraft account...", 6);
     let mc_profile = mc_response.get_mc_profile(&client).await;
     // trace!("{:#?}", mc_profile);
 
@@ -136,10 +140,11 @@ async fn add_account_code(code: &str, notifier: &Notifier, app: Arc<RwLock<YetaL
 
     // trace!("{:#?}", mc_account);
     info!("Saving new Minecraft account...");
-    notifier.notify("Saving new account...", NotificationState::Running);
-    Accounts::save_new_account(&mut app.write().unwrap().accounts, mc_account);
+    notifier.send_progress("Saving new account...", 7);
+    app.write().unwrap().accounts.save_new_account(mc_account);
 
-    notifier.notify(&String::from_iter(["Successfully added account \"", &username, "\"!"]), NotificationState::Success);
+    notifier.set_progress(0, 0);
+    notifier.send_success(&format!("Successfully added account '{username}'"));
     info!("Successfully added new account.");
 }
 
