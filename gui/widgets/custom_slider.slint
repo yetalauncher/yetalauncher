@@ -13,7 +13,7 @@ export component CustomSlider inherits Rectangle {
     y: 10px;
 
     handle := Rectangle {
-        background: Palette.primary;
+        background: touch.has-hover ? Palette.primary : Palette.primary.darker(0.2);
         width: self.height;
         height: 20px;
         border-radius: self.height / 2;
@@ -25,16 +25,16 @@ export component CustomSlider inherits Rectangle {
 
         pointer-event(event) => {
             if (event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
-                value = max(range.min, min(range.max,
-                    self.pressed-x * (range.max - range.min) / root.width
-                ));
+                value = clamp(round(
+                    ((self.mouse-x * (range.max - range.min) / root.width) + range.min) / step
+                ) * step, range.min, range.max);
                 edited(value)
             }
         }
         moved => {
             if (self.enabled && self.pressed) {
                 value = clamp(round(
-                    self.mouse-x * (range.max - range.min) / root.width / step
+                    ((self.mouse-x * (range.max - range.min) / root.width) + range.min) / step
                 ) * step, range.min, range.max);
                 edited(value)
             }

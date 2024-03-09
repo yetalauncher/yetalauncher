@@ -21,6 +21,7 @@ export global Settings {
 
     callback update-instance-path();
     callback update-icon-path();
+    callback update-instance-size(int);
     callback add-java-setting();
     callback save-settings();
     callback update-java-path() -> [string];
@@ -28,7 +29,7 @@ export global Settings {
 
     callback get-mc-versions();
     callback get-instances(bool);
-    pure callback grid-instances(length, [SlSimpleInstance]) -> [[SlSimpleInstance]];
+    pure callback grid-instances(length, [SlSimpleInstance], int) -> [[SlSimpleInstance]];
     callback launch-instance(int);
 
     callback get-accounts();

@@ -3,18 +3,39 @@ import { ListView } from "std-widgets.slint";
 import { InstanceTile } from "../widgets/instance_tile.slint";
 import { IconButton } from "../widgets/icon_button.slint";
 import { SlSimpleInstance } from "../structs.slint";
+import { Topbar } from "../widgets/topbar.slint";
+import { CustomSlider } from "../widgets/custom_slider.slint";
 
 export component HomePage inherits VerticalLayout {
-    IconButton {
-        text: "Refresh";
-        
-        clicked => {
-            Settings.get-instances(true);
+    Topbar {
+        text: "Instances";
+
+        Text {
+            x: 3px; y: 13px;
+            text: "(" + Settings.instances.length + ")";
+        }
+
+        IconButton {
+            y: 3px; x: root.width - 150px;
+            icon: @image-url("../../resources/tabler-icons/refresh.svg");
+            
+            clicked => {
+                Settings.get-instances(true);
+            }
+        }
+
+        CustomSlider {
+            y: 17px; x: root.width - 280px;
+            width: 120px;
+            range: { min: 8, max: 24};
+            value: Settings.settings.instance-size;
+            
+            edited(val) => { Settings.update-instance-size(val); }
         }
     }
 
     if Settings.instances.length > 0: view := ListView {
-        for instance_row in Settings.grid-instances(view.visible-width, Settings.instances): HorizontalLayout {
+        for instance_row in Settings.grid-instances(view.visible-width, Settings.instances, Settings.settings.instance-size): HorizontalLayout {
             for instance in instance-row: InstanceTile {
                 width: view.visible-width / ceil(view.visible-width / ((30 - Settings.settings.instance_size) * 15px));
                 instance: instance;

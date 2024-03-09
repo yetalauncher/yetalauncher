@@ -108,6 +108,13 @@ impl YetaLauncher {
             })).unwrap();
         }));
 
+        settings.on_update_instance_size(clone!([window, app], move |new_size| {
+            let mut app = app.write().unwrap();
+            app.settings.instance_size = new_size as u16;
+            app.settings.set();
+            app.sync_settings(&window)
+        }));
+
         settings.on_add_java_setting(clone!([window, app], move || {
             let mut app = app.write().unwrap();
             app.settings.java_settings.push(JavaDetails::default());
@@ -201,13 +208,13 @@ impl YetaLauncher {
             })).unwrap();
         }));
 
-        settings.on_grid_instances(clone!([app], move |width, instances| {
+        settings.on_grid_instances(clone!([], move |width, instances, instance_size| {
             ModelRc::new({
                 let mut result = Vec::new();
                 let mut vec = Vec::new();
 
                 let instances = instances.iter();
-                let per_row = (width / ((30 - app.read().unwrap().settings.instance_size) * 15) as f32).ceil() as i32;
+                let per_row = (width / ((30 - instance_size) * 15) as f32).ceil() as i32;
                 let mut i = 0;
 
                 for inst in instances {

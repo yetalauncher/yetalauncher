@@ -3,14 +3,18 @@ import { ListView } from "std-widgets.slint";
 import { AccountTile } from "../widgets/account_tile.slint";
 import { IconButton } from "../widgets/icon_button.slint";
 import { SlSimpleInstance } from "../structs.slint";
+import { Topbar } from "../widgets/topbar.slint";
 
 export component AccountsPage inherits VerticalLayout {
-    IconButton {
-        icon: @image-url("../../resources/tabler-icons/plus.svg");
-        text: "Add Account...";
+    Topbar {
+        text: "Accounts";
 
-        clicked => {
-            Settings.add-account();
+        IconButton {
+            y: 3px; x: root.width - 249px;
+            icon: @image-url("../../resources/tabler-icons/plus.svg");
+            text: "Add Account";
+    
+            clicked => { Settings.add-account(); }
         }
     }
 

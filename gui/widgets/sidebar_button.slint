@@ -13,7 +13,7 @@ export component SidebarButton inherits VerticalLayout {
 
     Rectangle { // Has to be a separate element because there's no margin property 
         background: area.has-hover ? Palette.primary : Palette.bg-secondary;
-        preferred-height: 40px;
+        height: 47px;
         border-radius: 6px;
 
         area := TouchArea {
@@ -21,7 +21,10 @@ export component SidebarButton inherits VerticalLayout {
             clicked => { App.page = page }
         }
         HorizontalBox {
+            x: -2px;
+
             Image {
+                y: -2px;
                 source: icon;
                 width: 32px;
                 height: 32px;

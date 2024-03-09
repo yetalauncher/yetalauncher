@@ -1,0 +1,26 @@
+import { VerticalBox } from "std-widgets.slint";
+import { Pages } from "../enums.slint";
+import { Palette } from "../globals.slint";
+
+export component Topbar inherits Rectangle {
+    in property <string> text;
+    
+    background: Palette.bg-secondary;
+    border-color: Palette.bg-tertiary;
+    border-width: 1px;
+    width: 100%;
+    height: 46px;
+
+    title := Text {
+        x: 8px; y: 8px;
+        text: root.text;
+        font-weight: 700;
+        font-size: 22px;
+    }
+
+    Rectangle {
+        x: title.x + title.width;
+
+        @children
+    }
+}
