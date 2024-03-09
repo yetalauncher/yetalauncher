@@ -3,7 +3,7 @@ use std::{cmp::Ordering, fs::File, io::BufReader, path::PathBuf, sync::Arc};
 use clone_macro::clone;
 use slint::{Image, SharedPixelBuffer};
 use tokio::{fs, runtime::Handle, task::JoinSet, time::Instant};
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime, Utc};
 use log::{*};
 use serde::{Deserialize, Serialize};
 
@@ -30,7 +30,7 @@ pub struct SimpleInstance {
     pub id: u32,
     pub mc_version: String,
     pub modloader: ModLoader,
-    pub last_played: Option<NaiveDateTime>,
+    pub last_played: Option<DateTime<Utc>>,
     pub instance_type: InstanceType
 }
 
@@ -125,7 +125,7 @@ impl SimpleInstance {
             instance_path: path.clone(),
             id: meta.instance_id,
             instance_type: InstanceType::MultiMC,
-            last_played: instance_cfg.last_played.and_then(|time| NaiveDateTime::from_timestamp_millis(time)),
+            last_played: instance_cfg.last_played.and_then(|time| DateTime::from_timestamp_millis(time)),
             mc_version: pack_json.components.iter()
                 .find(|&comp| comp.uid == "net.minecraft")
                 .map(|mc| mc.version.clone())
@@ -169,7 +169,7 @@ impl SimpleInstance {
             last_played: {
                 let time = NaiveDateTime::parse_and_remainder(&instance_json.last_played, "%Y-%m-%dT%H:%M:%S").map_err(
                     |err| InstanceGatherError::NaiveDateTimeParseFailed(instance_json.last_played.to_string(), err)
-                )?.0;
+                )?.0.and_utc();
 
                 if time.timestamp() > 10 { Some(time) } else { None }
             },
