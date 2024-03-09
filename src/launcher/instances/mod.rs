@@ -213,7 +213,11 @@ impl SimpleInstance {
     async fn load_image(&self) -> Option<Image> {
         if let Some(path) = self.icon_path.clone() {
             let image = Handle::current().spawn(async move {
-                let reader = BufReader::new(File::open(&path).map_err(
+                
+                let reader = BufReader::new(
+                    File::open(&path).or_else(
+                        |_| File::open(format!("{path}.png"))
+                    ).map_err(
                     |err| warn!("Failed to open instance icon '{path}': {err}")
                 ).ok()?);
     
