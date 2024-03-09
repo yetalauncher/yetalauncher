@@ -1,7 +1,7 @@
 use std::sync::{Arc, RwLock};
 
 use afire::{Server, Method, Response, Status};
-use chrono::{Utc, Duration};
+use chrono::{Utc, TimeDelta};
 use clone_macro::clone;
 use log::*;
 use reqwest::Client;
@@ -171,7 +171,7 @@ impl MSAResponse2 {
 
         MSAResponse2 {
             token_type: msa_response.token_type,
-            expires_at: Utc::now() + Duration::seconds(msa_response.expires_in.into()),
+            expires_at: Utc::now() + TimeDelta::try_seconds(msa_response.expires_in.into()).unwrap_or_default(),
             scope: msa_response.scope,
             access_token: msa_response.access_token,
             refresh_token: msa_response.refresh_token,
@@ -200,7 +200,7 @@ impl MSAResponse2 {
 
         *self = MSAResponse2 {
             token_type: msa_response.token_type,
-            expires_at: Utc::now() + Duration::seconds(msa_response.expires_in.into()),
+            expires_at: Utc::now() + TimeDelta::try_seconds(msa_response.expires_in.into()).unwrap_or_default(),
             scope: msa_response.scope,
             access_token: msa_response.access_token,
             refresh_token: msa_response.refresh_token,
@@ -270,7 +270,7 @@ impl XBLResponse {
     
         MCResponse2 {
             access_token: mc_response.access_token,
-            expires_at: Utc::now() + Duration::seconds(mc_response.expires_in.into()),
+            expires_at: Utc::now() + TimeDelta::try_seconds(mc_response.expires_in.into()).unwrap_or_default(),
             username: mc_response.username,
             token_type: mc_response.token_type,
         }

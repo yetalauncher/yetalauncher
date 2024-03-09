@@ -57,7 +57,7 @@ impl SimpleInstance {
     
         if exit_status.success() {
             info!("{minecraft_path:?} exited successfully.");
-            notifier.make_new().send_success("{name} exited successfully.");
+            notifier.make_new().send_success(&format!("{name} exited successfully."));
         } else {
             warn!("{minecraft_path:?} exited (crashed) with status {}", exit_status);
             notifier.make_new().send_error(
