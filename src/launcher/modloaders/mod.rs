@@ -4,6 +4,8 @@ use log::*;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
+use crate::app::notifier::Notifier;
+
 use self::{fabric::FabricVersionManifest, forge::ForgeVersionManifest, forge_installer::ForgeInstaller};
 
 pub mod fabric;
@@ -27,19 +29,19 @@ pub enum ModLoaders {
 }
 
 impl ModLoaders {
-    pub async fn prepare_launch(&self, mc_ver: &str, forge_ver: &str, client: &Client, java_path: &str) {
+    pub async fn prepare_launch(&self, mc_ver: &str, loader_ver: &str, client: &Client, java_path: &str, mut notifier: Notifier) {
         match self {
             ModLoaders::Forge => {
                 info!("Preparing launch with Forge...");
-                ForgeInstaller::prepare_jar(mc_ver, forge_ver, client, java_path).await;
+                ForgeInstaller::prepare_jar(mc_ver, loader_ver, client, java_path, &mut notifier).await;
             },
             _ => {}
         }
     }
 
-    pub async fn get_manifest(&self, mc_ver: &str, loader_ver: &str, client: &Client) -> Option<LoaderManifests> {
+    pub async fn get_manifest(&self, mc_ver: &str, loader_ver: &str, client: &Client, mut notifier: Notifier) -> Option<LoaderManifests> {
         match self {
-            ModLoaders::Forge => ForgeVersionManifest::get(mc_ver, loader_ver, client).await.map(LoaderManifests::Forge),
+            ModLoaders::Forge => ForgeVersionManifest::get(mc_ver, loader_ver, client, &mut notifier).await.map(LoaderManifests::Forge),
             ModLoaders::Fabric => FabricVersionManifest::get(mc_ver, loader_ver, client).await.map(LoaderManifests::Fabric),
             ModLoaders::Vanilla => None,
             _ => {

@@ -99,7 +99,7 @@ impl SimpleInstance {
     
 
         notifier.send_progress("Getting the modloader manifest...", 6);
-        if let Some(mf) = loader.get_manifest(&self.mc_version, &self.modloader.version, &client).await {
+        if let Some(mf) = loader.get_manifest(&self.mc_version, &self.modloader.version, &client, notifier.make_new()).await {
             info!("Merging with manifest of {loader} Loader...");
             version.merge_with(mf)
         }
@@ -108,7 +108,7 @@ impl SimpleInstance {
 
 
         notifier.send_progress("Preparing the modloader...", 7);
-        loader.prepare_launch(&self.mc_version, &self.modloader.version, &client, &java.path).await;
+        loader.prepare_launch(&self.mc_version, &self.modloader.version, &client, &java.path, notifier.make_new()).await;
     
         info!("Beginning argument parsing...");
         notifier.send_progress("Preparing the game...", 8);

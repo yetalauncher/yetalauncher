@@ -1,10 +1,10 @@
 use std::{fs, collections::HashMap};
 
-use log::info;
+use log::{*};
 use reqwest::Client;
 use serde::{Serialize, Deserialize};
 
-use crate::{app::utils::{get_library_dir, maven_identifier_to_path}, launcher::launching::mc_structs::{MCArguments, MCLibrary}};
+use crate::{app::{notifier::Notifier, utils::{get_library_dir, maven_identifier_to_path}}, launcher::launching::mc_structs::{MCArguments, MCLibrary}};
 
 use super::forge_installer::{ForgeInstaller, get_manifest_path, get_install_profile_path, ForgeProcessor, Side};
 
@@ -43,10 +43,12 @@ pub struct ForgeMappings {
 }
 
 impl ForgeVersionManifest {
-    pub async fn get(mc_ver: &str, forge_ver: &str, client: &Client) -> Option<Self> {
+    pub async fn get(mc_ver: &str, forge_ver: &str, client: &Client, notifier: &mut Notifier) -> Option<Self> {
         let path = get_manifest_path(mc_ver, forge_ver);
         if !path.exists() {
-            ForgeInstaller::extract_needed(mc_ver, forge_ver, client).await
+            notifier.set_progress(1, 2);
+            ForgeInstaller::extract_needed(mc_ver, forge_ver, client, notifier).await;
+            notifier.send_success("Got Forge version manifest");
         }
 
         let manifest = fs::read_to_string(path).expect("Failed to read manifest file!?");
@@ -56,20 +58,31 @@ impl ForgeVersionManifest {
 }
 
 impl ForgeInstallProfile {
-    pub async fn get(mc_ver: &str, forge_ver: &str, client: &Client) -> Option<Self> {
+    pub async fn get(mc_ver: &str, forge_ver: &str, client: &Client, notifier: &mut Notifier) -> Option<Self> {
         let path = get_install_profile_path(mc_ver, forge_ver);
         if !path.exists() {
-            ForgeInstaller::extract_needed(mc_ver, forge_ver, client).await
+            ForgeInstaller::extract_needed(mc_ver, forge_ver, client, notifier).await;
         }
 
         let install_profile = fs::read_to_string(path).expect("Failed to read install profile file!?");
         Some(serde_json::from_str(&install_profile).unwrap())
     }
 
-    pub fn process(&self, side: Side, java_path: &str) {
-        for proc in &self.processors {
-            proc.run(&side, self, java_path);
+    pub async fn process(&self, side: Side, java_path: &str, notifier: &mut Notifier) {
+        let length = self.processors.len();
+
+        let mut notifier = notifier.make_new();
+        notifier.send_msg("TEST");
+
+        for (i, proc) in self.processors.iter().enumerate() {
+            notifier.set_progress((i + 1) as u32, length as u32);
+            notifier.send_msg(&format!("Running task: {}", proc.get_task()));
+
+            proc.run(&side, self, java_path).await;
         }
+
+        notifier.set_progress(0, 0);
+        notifier.send_success("Finished running processors")
     }
 
     pub async fn download_libraries(&mut self, client: &Client) {

@@ -1,11 +1,12 @@
-use std::{path::PathBuf, fs::{self, create_dir_all}, process::Command, iter};
+use std::{path::PathBuf, fs::{self, create_dir_all}, iter};
 
 use jars::JarOptionBuilder;
 use log::{*};
 use reqwest::Client;
 use serde::{Serialize, Deserialize};
+use tokio::process::Command;
 
-use crate::app::utils::{get_forge_cache_dir, download_file_checked, get_library_dir, get_classpath_separator, maven_identifier_to_path, get_client_jar_dir, get_data_dir};
+use crate::app::{notifier::Notifier, utils::{download_file_checked, get_classpath_separator, get_client_jar_dir, get_data_dir, get_forge_cache_dir, get_library_dir, maven_identifier_to_path}};
 
 use super::forge::ForgeInstallProfile;
 
@@ -25,25 +26,34 @@ impl ForgeInstaller {
         path
     }
 
-    pub async fn prepare_jar(mc_ver: &str, forge_ver: &str, client: &Client, java_path: &str) {
+    pub async fn prepare_jar(mc_ver: &str, forge_ver: &str, client: &Client, java_path: &str, notifier: &mut Notifier) {
         let path = get_library_dir()
         .join("net/minecraftforge/forge")
         .join(format!("{mc_ver}-{forge_ver}"))
         .join(format!("forge-{mc_ver}-{forge_ver}-client.jar"));
 
         if !path.is_file() {
-            let mut install_profile = ForgeInstallProfile::get(mc_ver, forge_ver, client).await.expect("Failed to get Forge install profile!");
+            notifier.set_progress(1, 5);
+            let mut install_profile = ForgeInstallProfile::get(mc_ver, forge_ver, client, notifier).await.expect("Failed to get Forge install profile!");
 
+            notifier.send_progress("Downloading installer libraries...", 3);
             install_profile.download_libraries(client).await;
-            install_profile.process(Side::Client, java_path);
+
+            notifier.send_progress("Running installer processors...", 4);
+            install_profile.process(Side::Client, java_path, notifier).await;
+
+            notifier.set_progress(0, 0);
+            notifier.send_success("Successfully installed forge");
         }
     }
 
     /// ### Downloads the Forge installer and extracts the manifest and the install_profile from it
     /// Target location: `forge-{mc_ver}-{forge_ver}-[installer.jar/manifest.json/install_profile.json]` in the forge cache dir
-    pub async fn extract_needed(mc_ver: &str, forge_ver: &str, client: &Client) {
+    pub async fn extract_needed(mc_ver: &str, forge_ver: &str, client: &Client, notifier: &mut Notifier) {
+        notifier.send_progress("Downloading Forge installer...", 1);
         let installer = Self::download(mc_ver, forge_ver, client).await;
 
+        notifier.send_progress("Extracting Forge installer...", 2);
         debug!("Extracting installer jar...");
         let jar = jars::jar(
             installer, 
@@ -76,7 +86,7 @@ pub struct ForgeProcessor {
 
 
 impl ForgeProcessor {
-    pub fn run(&self, side: &Side, install_profile: &ForgeInstallProfile, java_path: &str) {
+    pub async fn run(&self, side: &Side, install_profile: &ForgeInstallProfile, java_path: &str) {
         let shouldrun = self.sides.is_none() || self.sides.as_ref().is_some_and(|s| s.contains(side));
 
         if !shouldrun { return; }
@@ -104,6 +114,7 @@ impl ForgeProcessor {
         .spawn()
         .expect(&format!("Failed to run Processor {}", self.jar))
         .wait()
+        .await
         .expect(&format!("Failed to wait on Processor {} process", self.jar));
 
         if process.success() {
@@ -144,6 +155,16 @@ impl ForgeProcessor {
 
             final_arg
         }).collect()
+    }
+
+    pub fn get_task(&self) -> &str {
+        let arg = &self.args[1];
+
+        if !arg.starts_with("{") && !arg.starts_with("[") && arg == &arg.to_uppercase() {
+            arg
+        } else {
+            &self.jar
+        }
     }
 }
 
