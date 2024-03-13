@@ -52,6 +52,21 @@ pub fn maven_identifier_to_path(identifier: &str) -> String {
     format!("{path}/{raw_name}/{version_path}/{raw_name}-{version}.{extension}")
 }
 
+pub fn split_vec_into<T>(mut vec: Vec<T>, output_count: usize) -> Vec<Vec<T>> {
+    let start_len = vec.len();
+    let mut result = Vec::new();
+
+    for _ in 0..output_count {
+        let after = vec.split_off(
+            ((start_len as f64 / output_count as f64).ceil() as usize).min(vec.len())
+        );
+        result.push(vec);
+        vec = after;
+    }
+
+    result
+}
+
 
 pub fn get_classpath_separator() -> String { String::from(if cfg!(windows) { ";" } else { ":" }) }
 

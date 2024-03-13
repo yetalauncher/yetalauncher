@@ -22,7 +22,9 @@ pub struct FabricVersionManifest {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FabricLibrary {
     pub name: String,
-    pub url: String
+    pub url: String,
+    pub sha1: Option<String>,
+    pub size: Option<u32>
 }
 
 impl FabricVersionManifest {

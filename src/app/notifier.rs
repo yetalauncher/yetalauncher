@@ -68,9 +68,17 @@ impl Notifier {
     }
 
     fn notify(&self, notif: InternalNotif) {
-        self.inner.send(notif).map_err(
+        self.inner.send(notif).unwrap_or_else(
             |err| error!("Failed to send notification: {err}")
-        ).ok();
+        );
+    }
+
+    pub fn send_remove(&self) {
+        self.notify(InternalNotif {
+            inner: Notif::default(),
+            id: self.id,
+            typ: InternalNotifType::Remove
+        })
     }
 
     pub fn send_notif(&self, notif: Notif) {
@@ -156,37 +164,41 @@ impl InternalNotifier {
                         });
                     },
                     InternalNotifType::FadeIn => {
-                        self.notifications.iter_mut().find(|n| n.id == notif.id).unwrap().inner.in_view = true;
+                        if let Some(existing) = self.notifications.iter_mut().find(|n| n.id == notif.id) {
+                            existing.inner.in_view = true;
 
-                        on_update(self.notifications.iter().map(|n| &n.inner).collect());
+                            on_update(self.notifications.iter().map(|n| &n.inner).collect());
 
-                        let timeout = match &notif.inner.status {
-                            NotificationState::Success => Some(3),
-                            NotificationState::Warning => Some(7),
-                            NotificationState::Error => Some(10),
-                            _ => None
-                        };
+                            let timeout = match &notif.inner.status {
+                                NotificationState::Success => Some(3),
+                                NotificationState::Warning => Some(7),
+                                NotificationState::Error => Some(10),
+                                _ => None
+                            };
+        
+                            if let Some(secs) = timeout {
+                                let sender = self.sender.clone();
     
-                        if let Some(secs) = timeout {
-                            let sender = self.sender.clone();
-
-                            tokio::spawn(async move {
-                                sleep(Duration::from_secs(secs)).await;
-                                sender.send(notif.with_typ(InternalNotifType::FadeOut))
-                            });
+                                tokio::spawn(async move {
+                                    sleep(Duration::from_secs(secs)).await;
+                                    sender.send(notif.with_typ(InternalNotifType::FadeOut))
+                                });
+                            }
                         }
                     },
                     InternalNotifType::FadeOut => {
-                        self.notifications.iter_mut().find(|n| n.id == notif.id).unwrap().inner.in_view = false;
+                        if let Some(existing) = self.notifications.iter_mut().find(|n| n.id == notif.id) {
+                            existing.inner.in_view = false;
 
-                        on_update(self.notifications.iter().map(|n| &n.inner).collect());
+                            on_update(self.notifications.iter().map(|n| &n.inner).collect());
 
-                        let sender = self.sender.clone();
-
-                        tokio::spawn(async move {
-                            sleep(Duration::from_millis(150)).await;
-                            sender.send(notif.with_typ(InternalNotifType::Remove))
-                        });
+                            let sender = self.sender.clone();
+    
+                            tokio::spawn(async move {
+                                sleep(Duration::from_millis(150)).await;
+                                sender.send(notif.with_typ(InternalNotifType::Remove))
+                            });
+                        }
                     },
                     InternalNotifType::Remove => {
                         let index = self.notifications.iter().position(

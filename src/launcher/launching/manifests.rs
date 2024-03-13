@@ -4,7 +4,7 @@ use chrono::DateTime;
 use log::{*};
 use reqwest::Client;
 
-use crate::{app::{consts::MINECRAFT_VERSION_URL, utils::{download_file_checked, get_assets_dir, get_classpath_separator, get_client_jar_dir, get_log4j_dir, maven_identifier_to_path}}, launcher::modloaders::LoaderManifests, slint_generatedMainWindow::SlMCVersionDetails};
+use crate::{app::{consts::MINECRAFT_VERSION_URL, downloader::Downloader, notifier::Notifier, utils::{download_file_checked, get_assets_dir, get_classpath_separator, get_client_jar_dir, get_log4j_dir, maven_identifier_to_path}}, launcher::modloaders::LoaderManifests, slint_generatedMainWindow::SlMCVersionDetails};
 
 use super::mc_structs::*;
 
@@ -129,8 +129,10 @@ impl MCVersionManifest {
         final_args
     }
 
-    pub async fn get_classpath(&self, client: &Client) -> String {
+    pub async fn get_classpath(&self, client: &Client, notifier: Notifier) -> String {
         let separator = get_classpath_separator();
+        let mut downloader = Downloader::new(notifier, 8);
+
         let libraries: Vec<&MCLibrary> = self.libraries
             .iter()
             .filter(|&lib| if let Some(rules) = &lib.rules {
@@ -139,8 +141,16 @@ impl MCVersionManifest {
             .collect();
 
         for lib in &libraries {
-            lib.download_checked(client).await
+            for dl in lib.get_downloads() {
+                downloader.add(dl);
+            }
         }
+
+        downloader.download_all(true, "Minecraft libraries").await;
+
+        //for lib in &libraries {
+        //    lib.download_checked(client).await
+        //}
 
         libraries.iter()
             .flat_map(|&lib| lib.get_paths() )
@@ -180,7 +190,7 @@ impl MCVersionManifest {
         } else { None }
     }
 
-    pub async fn get_client_assets(&self, client: &Client) -> String {
+    pub async fn get_client_assets(&self, client: &Client, notifier: Notifier) -> String {
         let assets_dir = get_assets_dir();
         let index_path = &assets_dir.join("indexes").join(format!("{}.json", &self.asset_index.id));
 
@@ -194,16 +204,17 @@ impl MCVersionManifest {
     
             let file = fs::read_to_string(index_path).unwrap();
             let index: AssetIndexFile = serde_json::from_str(&file).unwrap();
+            let mut downloader = Downloader::new(notifier, 12);
     
             for asset in index.objects {
-                let url = format!("https://resources.download.minecraft.net/{}/{}", &asset.1.hash[..2], asset.1.hash);
-                download_file_checked(
-                    client, 
-                    Some(&asset.1.hash), 
-                    &assets_dir.join("objects").join(&asset.1.hash[..2]).join(&asset.1.hash), 
-                    &url
-                ).await;
+                let (prefix, name) = (&asset.1.hash[..2], &asset.1.hash);
+                let url = format!("https://resources.download.minecraft.net/{prefix}/{name}");
+                let path = assets_dir.join("objects").join(prefix).join(name);
+
+                downloader.add_from(path, url, None, Some(asset.1.size));
             }
+
+            downloader.download_all(false, "Minecraft assets").await;
         }
 
         assets_dir.to_string_lossy().to_string()
@@ -228,9 +239,9 @@ impl MCVersionManifest {
                             downloads: MCLibraryDownloads {
                                 artifact: Some(MCLibraryDownloadsArtifacts {
                                     path: path.to_string(),
-                                    url: format!("{}/{}", lib.url, path),
+                                    url: format!("{}{}", lib.url, path),
                                     size: 0,
-                                    sha1: None,
+                                    sha1: lib.sha1.clone()
                                 }),
                                 classifiers: None,
                                 natives: None

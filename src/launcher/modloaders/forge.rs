@@ -4,7 +4,7 @@ use log::{*};
 use reqwest::Client;
 use serde::{Serialize, Deserialize};
 
-use crate::{app::{notifier::Notifier, utils::{get_library_dir, maven_identifier_to_path}}, launcher::launching::mc_structs::{MCArguments, MCLibrary}};
+use crate::{app::{downloader::Downloader, notifier::Notifier, utils::{get_library_dir, maven_identifier_to_path}}, launcher::launching::mc_structs::{MCArguments, MCLibrary}};
 
 use super::forge_installer::{ForgeInstaller, get_manifest_path, get_install_profile_path, ForgeProcessor, Side};
 
@@ -85,16 +85,24 @@ impl ForgeInstallProfile {
         notifier.send_success("Finished running processors")
     }
 
-    pub async fn download_libraries(&mut self, client: &Client) {
+    pub async fn download_libraries(&mut self, notifier: Notifier) {
         info!("Downloading installer libraries...");
+
+        let mut downloader = Downloader::new(notifier, 8);
+
         for lib in &mut self.libraries {
             if let Some(artifact) = &mut lib.downloads.artifact {
                 if artifact.url.is_empty() && lib.name.contains("minecraftforge") {
                     artifact.url = format!("https://maven.minecraftforge.net/{}", maven_identifier_to_path(&lib.name))
                 }
             }
-            lib.download_checked(client).await;
+
+            for dl in lib.get_downloads() {
+                downloader.add(dl)
+            }
         }
+
+        downloader.download_all(true, "Forge libraries").await;
     }
 }
 

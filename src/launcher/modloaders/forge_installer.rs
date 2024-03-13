@@ -37,7 +37,7 @@ impl ForgeInstaller {
             let mut install_profile = ForgeInstallProfile::get(mc_ver, forge_ver, client, notifier).await.expect("Failed to get Forge install profile!");
 
             notifier.send_progress("Downloading installer libraries...", 3);
-            install_profile.download_libraries(client).await;
+            install_profile.download_libraries(notifier.make_new()).await;
 
             notifier.send_progress("Running installer processors...", 4);
             install_profile.process(Side::Client, java_path, notifier).await;

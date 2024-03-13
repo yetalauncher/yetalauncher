@@ -2,12 +2,12 @@ use std::path::PathBuf;
 
 use reqwest::Client;
 
-use crate::app::utils::{download_file_checked, get_library_dir};
+use crate::app::{downloader::Download, utils::{download_file_checked, get_library_dir}};
 
 use super::mc_structs::*;
 
 impl MCLibrary {
-    pub fn get_downloads(&self) -> Vec<&MCLibraryDownloadsArtifacts> {
+    pub fn get_lib_downloads(&self) -> Vec<&MCLibraryDownloadsArtifacts> {
         let mut paths = Vec::new();
         if let Some(artifact) = &self.downloads.artifact {
             paths.push(artifact);
@@ -29,14 +29,14 @@ impl MCLibrary {
     
     pub fn get_paths(&self) -> Vec<PathBuf> {
         let lib_dir = get_library_dir();
-        self.get_downloads().iter().map(|&download| {
+        self.get_lib_downloads().iter().map(|&download| {
             lib_dir.join(&download.path)
         }).collect()
     }
 
     pub async fn download_checked(&self, client: &Client) {
         let lib_dir = get_library_dir();
-        for download in self.get_downloads() {
+        for download in self.get_lib_downloads() {
             download_file_checked(
                 client,
                 download.sha1.as_ref(),
@@ -44,6 +44,16 @@ impl MCLibrary {
                 &download.url
             ).await
         }
+    }
+
+    pub fn get_downloads(&self) -> Vec<Download> {
+        let lib_dir = get_library_dir();
+
+        self.get_lib_downloads()
+        .into_iter()
+        .map(|dl| Download::new(
+            lib_dir.join(&dl.path), &dl.url, dl.sha1.clone(), None)
+        ).collect()
     }
 }
 
