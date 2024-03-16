@@ -93,7 +93,10 @@ impl ForgeInstallProfile {
         for lib in &mut self.libraries {
             if let Some(artifact) = &mut lib.downloads.artifact {
                 if artifact.url.is_empty() && lib.name.contains("minecraftforge") {
-                    artifact.url = format!("https://maven.minecraftforge.net/{}", maven_identifier_to_path(&lib.name))
+                    let maven_name = maven_identifier_to_path(&lib.name);
+                    let forge_name = format!("{}-universal.jar", &maven_name[..maven_name.len()-4]);
+
+                    artifact.url = format!("https://maven.minecraftforge.net/{forge_name}");
                 }
             }
 

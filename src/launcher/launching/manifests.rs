@@ -268,10 +268,14 @@ impl MCVersionManifest {
                 for lib in &mut forge.libraries {
                     if let Some(artifact) = &mut lib.downloads.artifact {
                         if artifact.url.is_empty() && lib.name.contains("minecraftforge") {
-                            artifact.url = format!("https://maven.minecraftforge.net/{}", maven_identifier_to_path(&lib.name))
+                            let maven_name = maven_identifier_to_path(&lib.name);
+                            let forge_name = format!("{}-universal.jar", &maven_name[..maven_name.len()-4]);
+
+                            artifact.url = format!("https://balls.minecraftforge.net/{forge_name}");
                         }
                     }
                 }
+
                 self.libraries.append(&mut forge.libraries)
             },
         }
