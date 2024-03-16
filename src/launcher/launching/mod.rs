@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use log::{*};
 use reqwest::Client;
-use tokio::process::Command;
+use tokio::{fs, process::Command};
 
 use crate::{app::{notifier::Notifier, settings::AppSettings, utils::{get_classpath_separator, get_library_dir}}, launcher::{authentication::auth_structs::Accounts, launching::mc_structs::*}};
 
@@ -24,6 +24,16 @@ impl SimpleInstance {
     pub async fn launch(&self, settings: &AppSettings, accounts: &mut Accounts, mut notifier: Notifier) -> Result<(), String> {
         let SimpleInstance { minecraft_path, id, mc_version, name, .. } = &self;
         notifier.set_progress(1, 9);
+
+        if !minecraft_path.is_dir() {
+            if !minecraft_path.exists() {
+                fs::create_dir_all(minecraft_path).await.map_err(
+                    |err| format!("Failed to create minecraft directory: {err}")
+                )?;
+            } else {
+                Err(String::from("Target of minecraft path is invalid!"))?;
+            }
+        };
 
         info!("Launching: {minecraft_path:?}, Version: {mc_version}, id: {id}");
         notifier.send_msg(&format!("Launching {name}..."));
