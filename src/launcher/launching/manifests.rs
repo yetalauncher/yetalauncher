@@ -91,6 +91,9 @@ impl MCVersionManifest {
         if !final_args.iter().any(|arg| arg.contains("-cp")) {
             final_args.append(&mut vec!["-cp".to_string(), "${classpath}".to_string()])
         }
+        if !final_args.iter().any(|arg| arg.contains("java.library.path")) {
+            final_args.push("-Djava.library.path=${natives_directory}".to_string());
+        }
 
         if let Some(config) = self.get_log4j_config(client).await {
             final_args.push(config.0.replace("${path}", &config.1.to_string_lossy()))
@@ -129,7 +132,7 @@ impl MCVersionManifest {
         final_args
     }
 
-    pub async fn get_classpath(&self, client: &Client, notifier: Notifier) -> String {
+    pub async fn get_classpath(&self, natives_path: &PathBuf, client: &Client, notifier: Notifier) -> String {
         let separator = get_classpath_separator();
         let mut downloader = Downloader::new(notifier, 8);
 
@@ -148,11 +151,10 @@ impl MCVersionManifest {
 
         downloader.download_all(true, "Minecraft libraries").await;
 
-        //for lib in &libraries {
-        //    lib.download_checked(client).await
-        //}
-
         libraries.iter()
+            .inspect(|&lib| if lib.extract.is_some() {
+                lib.extract_natives(natives_path).unwrap();
+            })
             .flat_map(|&lib| lib.get_paths() )
             .map(|path| path.to_string_lossy().to_string() )
             .chain(iter::once(
@@ -249,6 +251,7 @@ impl MCVersionManifest {
                             name: lib.name.to_string(),
                             rules: None,
                             natives: None,
+                            extract: None
                         }
                     }).collect()
                 )

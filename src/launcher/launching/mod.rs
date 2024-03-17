@@ -139,6 +139,8 @@ impl SimpleInstance {
     }
     
     async fn parse_arguments(args_struct: Args, account: &MCAccount, version: MCVersionManifest, minecraft_path: &PathBuf, client: &Client, notifier: &mut Notifier) -> Args {
+        let natives_path = minecraft_path.join("natives");
+
         let replacements = [
             ("${auth_player_name}", account.mc_profile.name.to_string()),
             ("${auth_uuid}", account.mc_profile.id.to_string()),
@@ -146,13 +148,13 @@ impl SimpleInstance {
             ("${auth_xuid}", account.xsts_response.display_claims.xui[0].uhs.to_string()), // idk what else a "xuid" could be
             ("${user_properties}", "something".to_string()),
     
-            ("${classpath}", version.get_classpath(client, notifier.clone()).await),
+            ("${classpath}", version.get_classpath(&natives_path, client, notifier.clone()).await),
             ("${assets_root}", version.get_client_assets(client, notifier.clone()).await),
             ("${version_name}", version.id.replace(' ', "_").replace(':', "_")),
             ("${assets_index_name}", version.asset_index.id),
             ("${version_type}", version.typ),
     
-            ("${natives_directory}", minecraft_path.join("natives").to_string_lossy().to_string()),
+            ("${natives_directory}", natives_path.to_string_lossy().to_string()),
             ("${launcher_name}", "yetalauncher".to_string()),
             ("${launcher_version}", "323".to_string()),
             ("${game_directory}", minecraft_path.to_string_lossy().to_string()),

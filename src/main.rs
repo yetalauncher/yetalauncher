@@ -328,7 +328,7 @@ impl YetaLauncher {
             .find(|inst| inst.id == instance_id as u32)
             .expect("Could not find instance to launch! How did we get here?");
 
-            instance.launch(&self.settings, &mut self.accounts, notifier).await.ok();
+            instance.launch(&self.settings, &mut self.accounts, notifier).await.unwrap();
         }
     }
 }

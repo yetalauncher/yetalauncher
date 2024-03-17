@@ -1,6 +1,8 @@
-use std::path::PathBuf;
+use std::{fs::{self, File}, io::{self, BufReader}, path::PathBuf};
 
+use log::debug;
 use reqwest::Client;
+use zip::ZipArchive;
 
 use crate::app::{downloader::Download, utils::{download_file_checked, get_library_dir}};
 
@@ -9,22 +11,28 @@ use super::mc_structs::*;
 impl MCLibrary {
     pub fn get_lib_downloads(&self) -> Vec<&MCLibraryDownloadsArtifacts> {
         let mut paths = Vec::new();
+
         if let Some(artifact) = &self.downloads.artifact {
             paths.push(artifact);
         }
-        if let Some(classifiers) = &self.downloads.classifiers {
-            let natives = if cfg!(windows) {
-                &classifiers.natives_windows
-            } else if cfg!(macos) {
-                &classifiers.natives_osx
-            } else {
-                &classifiers.natives_linux // in the hopes of these natives working on platforms like OpenBSD too (probably not)
-            };
-            if let Some(n) = natives.as_ref() {
-                paths.push(n);
-            }
+
+        if let Some(native) = self.get_native() {
+            paths.push(native);
         }
+
         paths
+    }
+
+    pub fn get_native(&self) -> Option<&MCLibraryDownloadsArtifacts> {
+        if let Some(classifiers) = &self.downloads.classifiers {
+            if cfg!(windows) {
+                classifiers.natives_windows.as_ref()
+            } else if cfg!(macos) {
+                classifiers.natives_osx.as_ref()
+            } else {
+                classifiers.natives_linux.as_ref()
+            }
+        } else { None }
     }
     
     pub fn get_paths(&self) -> Vec<PathBuf> {
@@ -54,6 +62,45 @@ impl MCLibrary {
         .map(|dl| Download::new(
             lib_dir.join(&dl.path), &dl.url, dl.sha1.clone(), None)
         ).collect()
+    }
+
+    pub fn extract_natives(&self, natives_path: &PathBuf) -> Result<(), std::io::Error> {
+        if let(Some(extract_rule), Some(native)) = (&self.extract, self.get_native()) {
+            let path = get_library_dir().join(&native.path);
+            let reader = BufReader::new(File::open(path)?);
+            let mut zip = ZipArchive::new(reader)?;
+
+            for i in 0..zip.len() {
+                let file = zip.by_index(i)?;
+                let file_path = match file.enclosed_name() {
+                    Some(path) => natives_path.join(path),
+                    None => continue
+                };
+
+                if extract_rule.exclude.iter().any(|exclude| file.name().contains(exclude)) {
+                    continue;
+                } 
+
+                if file.is_dir() {
+                    fs::create_dir_all(file_path)?;
+                } else {
+                    if let Some(parent) = file_path.parent() {
+                        if !parent.exists() {
+                            fs::create_dir_all(parent)?;
+                        }
+                    }
+
+                    debug!("extracting to {file_path:?}");
+
+                    let mut reader = BufReader::new(file);
+                    let mut target = File::create(file_path)?;
+
+                    io::copy(&mut reader, &mut target)?;
+                }
+            }
+
+            Ok(())
+        } else { Ok(()) }
     }
 }
 

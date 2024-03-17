@@ -168,7 +168,8 @@ pub struct MCLibrary {
     pub downloads: MCLibraryDownloads,
     pub name: String,
     pub rules: Option<Vec<MCRule>>,
-    pub natives: Option<Value>
+    pub natives: Option<Value>,
+    pub extract: Option<MCLibraryExtractRules>
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -192,6 +193,11 @@ pub struct MCLibraryDownloadsClassifiers {
     pub natives_linux: Option<MCLibraryDownloadsArtifacts>,
     pub natives_osx: Option<MCLibraryDownloadsArtifacts>,
     pub natives_windows: Option<MCLibraryDownloadsArtifacts>
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MCLibraryExtractRules {
+    pub exclude: Vec<String>
 }
 
 #[derive(Debug, Serialize, Deserialize)]
