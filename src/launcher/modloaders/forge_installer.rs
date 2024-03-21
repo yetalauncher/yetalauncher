@@ -2,28 +2,41 @@ use std::{path::PathBuf, fs::{self, create_dir_all}, iter};
 
 use jars::JarOptionBuilder;
 use log::{*};
-use reqwest::Client;
+use reqwest::{Client, StatusCode};
 use serde::{Serialize, Deserialize};
 use tokio::process::Command;
 
-use crate::app::{notifier::Notifier, utils::{download_file_checked, get_classpath_separator, get_client_jar_dir, get_data_dir, get_forge_cache_dir, get_library_dir, maven_identifier_to_path}};
+use crate::app::{downloader::{Download, DownloadErr}, notifier::Notifier, utils::{get_classpath_separator, get_client_jar_dir, get_data_dir, get_forge_cache_dir, get_library_dir, maven_identifier_to_path}};
 
 use super::forge::ForgeInstallProfile;
 
 pub struct ForgeInstaller;
 
 impl ForgeInstaller {
-    async fn download(mc_ver: &str, forge_ver: &str, client: &Client) -> PathBuf {
+    async fn download(mc_ver: &str, forge_ver: &str, client: &Client, notifier: &mut Notifier) -> Result<PathBuf, DownloadErr> {
         info!("Downloading Forge installer for {mc_ver}-{forge_ver}...");
         let path = get_forge_cache_dir().join(format!("forge-{mc_ver}-{forge_ver}-installer.jar"));
-        download_file_checked(
-            client,
-            None,
-            &path,
-            &format!("https://maven.minecraftforge.net/net/minecraftforge/forge/{mc_ver}-{forge_ver}/forge-{mc_ver}-{forge_ver}-installer.jar")
-        ).await;
 
-        path
+        let download = Download::new(
+            path.clone(),
+            &format!("https://maven.minecraftforge.net/net/minecraftforge/forge/{mc_ver}-{forge_ver}/forge-{mc_ver}-{forge_ver}-installer.jar"),
+            None,
+            None
+        ).download(client, notifier).await.map(|_| path.clone());
+
+        debug!("{:?}", download);
+
+        if let Err(DownloadErr::Response(StatusCode::NOT_FOUND)) = download {
+            debug!("Falling back to {}", format!("https://maven.minecraftforge.net/net/minecraftforge/forge/{mc_ver}-{forge_ver}-{mc_ver}/forge-{mc_ver}-{forge_ver}-{mc_ver}-installer.jar"));
+            Download::new(
+                path.clone(),
+                &format!("https://maven.minecraftforge.net/net/minecraftforge/forge/{mc_ver}-{forge_ver}-{mc_ver}/forge-{mc_ver}-{forge_ver}-{mc_ver}-installer.jar"),
+                None,
+                None
+            ).download(client, notifier).await.map(|_| path)
+        } else {
+            download
+        }
     }
 
     pub async fn prepare_jar(mc_ver: &str, forge_ver: &str, client: &Client, java_path: &str, notifier: &mut Notifier) {
@@ -51,7 +64,7 @@ impl ForgeInstaller {
     /// Target location: `forge-{mc_ver}-{forge_ver}-[installer.jar/manifest.json/install_profile.json]` in the forge cache dir
     pub async fn extract_needed(mc_ver: &str, forge_ver: &str, client: &Client, notifier: &mut Notifier) {
         notifier.send_progress("Downloading Forge installer...", 1);
-        let installer = Self::download(mc_ver, forge_ver, client).await;
+        let installer = Self::download(mc_ver, forge_ver, client, &mut notifier.make_new()).await.expect("Failed to download Forge installer!");
 
         notifier.send_progress("Extracting Forge installer...", 2);
         debug!("Extracting installer jar...");

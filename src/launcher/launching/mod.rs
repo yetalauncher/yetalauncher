@@ -145,8 +145,7 @@ impl SimpleInstance {
             ("${auth_player_name}", account.mc_profile.name.to_string()),
             ("${auth_uuid}", account.mc_profile.id.to_string()),
             ("${auth_access_token}", account.mc_response.access_token.to_string()),
-            ("${auth_xuid}", account.xsts_response.display_claims.xui[0].uhs.to_string()), // idk what else a "xuid" could be
-            ("${user_properties}", "something".to_string()),
+            ("${user_properties}", stringify!({"": []}).to_string()),
     
             ("${classpath}", version.get_classpath(&natives_path, client, notifier.clone()).await),
             ("${assets_root}", version.get_client_assets(client, notifier.clone()).await),
@@ -169,7 +168,10 @@ impl SimpleInstance {
     
         let to_remove = [
             "quickPlay",
-            "--demo"
+            "--demo",
+            "xuid", // Unnecessary tracking data, presumably
+            "clientId", // ^
+            "clientid" // ^
         ];
     
         let args_final: (Vec<String>, Vec<String>) = [args_struct.jvm, args_struct.game].map(|args| {

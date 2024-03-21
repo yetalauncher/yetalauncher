@@ -16,6 +16,7 @@ pub enum DownloadErr {
     NotAFile,
     NoFilePerm(io::Error),
     Request(reqwest::Error),
+    Response(reqwest::StatusCode),
     FileCreate(io::Error),
     FileWrite(io::Error)
 }
@@ -132,29 +133,32 @@ impl Download {
     
             match client.get(&self.url).send().await {
                 Ok(mut response) => {
-                    notifier.send_msg(&format!("Downloading: {}", &self.url));
-                    trace!("Downloading: {} to {:?}", &self.url, &self.path);
-    
-                    let total = response.content_length();
-                    let mut current: usize = 0;
+                    if response.status().is_success() {
+                        notifier.send_msg(&format!("Downloading: {}", &self.url));
+                        trace!("Downloading: {} to {:?}", &self.url, &self.path);
         
-                    let mut bytes: Vec<u8> = Vec::new();
-                    let mut writer = fs::File::create(&self.path).await.map_err(DownloadErr::FileCreate)?;
+                        let total = response.content_length();
+                        let mut current: usize = 0;
+            
+                        let mut bytes: Vec<u8> = Vec::new();
+                        let mut writer = fs::File::create(&self.path).await.map_err(DownloadErr::FileCreate)?;
+            
+                        while let Ok(Some(chunk)) = response.chunk().await {
+                            if let Err(err) = bytes.write_all(chunk.as_ref()) {
+                                error!("Failed to write to in-memory file??: {err}");
+                            }
+                            current += chunk.len();
         
-                    while let Ok(Some(chunk)) = response.chunk().await {
-                        if let Err(err) = bytes.write_all(chunk.as_ref()) {
-                            error!("Failed to write to in-memory file??: {err}");
+                            if let Some(total) = total {
+                                notifier.send_msg(&format!("Downloading: {}", &self.url));
+                                notifier.set_progress(current as u32 / 1000, total as u32 / 1000);
+                            }
                         }
-                        current += chunk.len();
-    
-                        if let Some(total) = total {
-                            notifier.send_msg(&format!("Downloading: {}", &self.url));
-                            notifier.set_progress(current as u32 / 1000, total as u32 / 1000);
-                        }
-                        //debug!("Downloaded {current} of {}", total.unwrap_or(0));
+            
+                        io::copy(&mut Cursor::new(bytes), &mut writer).await.map_err(DownloadErr::FileWrite)?;
+                    } else {
+                        Err(DownloadErr::Response(response.status()))?
                     }
-        
-                    io::copy(&mut Cursor::new(bytes), &mut writer).await.map_err(DownloadErr::FileWrite)?;
                 },
                 Err(err) => Err(DownloadErr::Request(err))?
             }
