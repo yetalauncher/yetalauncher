@@ -183,7 +183,7 @@ pub struct MCLibraryDownloads {
 pub struct MCLibraryDownloadsArtifacts {
     pub path: String,
     pub url: String,
-    pub size: u32,
+    pub size: Option<u32>,
     pub sha1: Option<String>
 }
 

@@ -6,11 +6,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::notifier::Notifier;
 
-use self::{fabric::FabricVersionManifest, forge::ForgeVersionManifest, forge_installer::ForgeInstaller};
+use self::{fabric::FabricVersionManifest, forge::ForgeVersionManifest, forge::installer::ForgeInstaller};
 
 pub mod fabric;
 pub mod forge;
-pub mod forge_installer;
 
 pub enum LoaderManifests {
     Fabric(FabricVersionManifest),

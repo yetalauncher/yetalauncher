@@ -66,7 +66,7 @@ impl YetaLauncher {
                 ).rev().collect();
 
                 slint::invoke_from_event_loop(clone!([window], move || {
-                    trace!("Syncing {} notification(s)", slint_notifs.len());
+                    //trace!("Syncing {} notification(s)", slint_notifs.len());
 
                     window.unwrap()
                     .global::<App>()

@@ -79,7 +79,10 @@ impl MCLibrary {
 
                 if extract_rule.exclude.iter().any(|exclude| file.name().contains(exclude)) {
                     continue;
-                } 
+                }
+                if file_path.exists() {
+                    continue;
+                }
 
                 if file.is_dir() {
                     fs::create_dir_all(file_path)?;
@@ -90,7 +93,7 @@ impl MCLibrary {
                         }
                     }
 
-                    debug!("extracting to {file_path:?}");
+                    debug!("Extracting native library {file_path:?}...");
 
                     let mut reader = BufReader::new(file);
                     let mut target = File::create(file_path)?;

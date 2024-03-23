@@ -4,7 +4,7 @@ use chrono::DateTime;
 use log::{*};
 use reqwest::Client;
 
-use crate::{app::{consts::MINECRAFT_VERSION_URL, downloader::Downloader, notifier::Notifier, utils::{download_file_checked, get_assets_dir, get_classpath_separator, get_client_jar_dir, get_log4j_dir, maven_identifier_to_path}}, launcher::modloaders::LoaderManifests, slint_generatedMainWindow::SlMCVersionDetails};
+use crate::{app::{consts::{MINECRAFT_LIBRARY_URL, MINECRAFT_VERSION_URL}, downloader::Downloader, notifier::Notifier, utils::{download_file_checked, get_assets_dir, get_classpath_separator, get_client_jar_dir, get_log4j_dir, maven_identifier_to_path}}, launcher::modloaders::{forge::ForgeLibrary, LoaderManifests}, slint_generatedMainWindow::SlMCVersionDetails};
 
 use super::mc_structs::*;
 
@@ -242,7 +242,7 @@ impl MCVersionManifest {
                                 artifact: Some(MCLibraryDownloadsArtifacts {
                                     path: path.to_string(),
                                     url: format!("{}{}", lib.url, path),
-                                    size: 0,
+                                    size: None,
                                     sha1: lib.sha1.clone()
                                 }),
                                 classifiers: None,
@@ -268,18 +268,52 @@ impl MCVersionManifest {
                     self.minecraft_arguments = Some(forge_mcargs.to_string())
                 }
 
-                for lib in &mut forge.libraries {
-                    if let Some(artifact) = &mut lib.downloads.artifact {
-                        if artifact.url.is_empty() && lib.name.contains("minecraftforge") {
-                            let maven_name = maven_identifier_to_path(&lib.name);
-                            let forge_name = format!("{}-universal.jar", &maven_name[..maven_name.len()-4]);
+                let mut libraries = Vec::new();
 
-                            artifact.url = format!("https://balls.minecraftforge.net/{forge_name}");
-                        }
+                for lib in forge.libraries {
+                    match lib {
+                        ForgeLibrary::Vanilla(mut lib) => {
+                            if let Some(artifact) = &mut lib.downloads.artifact {
+                                if artifact.url.is_empty() && lib.name.contains("minecraftforge") {
+                                    let maven_name = maven_identifier_to_path(&lib.name);
+                                    let forge_name = format!("{}-universal.jar", &maven_name[..maven_name.len()-4]);
+        
+                                    artifact.url = format!("https://maven.minecraftforge.net/{forge_name}");
+                                }
+                            }
+                            warn!("was a vanila library");
+                            libraries.push(lib);
+                        },
+                        ForgeLibrary::Forge(lib) => {
+                            let path = maven_identifier_to_path(&lib.name);
+                            let url = if let Some(lib_url) = lib.url {
+                                format!("{lib_url}{path}")
+                            } else {
+                                format!("{MINECRAFT_LIBRARY_URL}/{path}")
+                            };
+
+                            libraries.push(MCLibrary {
+                                downloads: MCLibraryDownloads {
+                                    artifact: Some(MCLibraryDownloadsArtifacts {
+                                        path,
+                                        url,
+                                        size: None,
+                                        sha1: None,
+                                    }),
+                                    classifiers: None,
+                                    natives: None
+                                },
+                                name: lib.name.to_string(),
+                                rules: None,
+                                natives: None,
+                                extract: None,
+                            });
+                        },
                     }
                 }
 
-                self.libraries.append(&mut forge.libraries)
+                libraries.append(&mut self.libraries);
+                self.libraries = libraries;
             },
         }
     }

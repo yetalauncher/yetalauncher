@@ -1,14 +1,15 @@
-use std::{path::PathBuf, fs::{self, create_dir_all}, iter};
+use std::{path::PathBuf, iter};
 
+use tokio::fs;
 use jars::JarOptionBuilder;
 use log::{*};
 use reqwest::{Client, StatusCode};
 use serde::{Serialize, Deserialize};
 use tokio::process::Command;
 
-use crate::app::{downloader::{Download, DownloadErr}, notifier::Notifier, utils::{get_classpath_separator, get_client_jar_dir, get_data_dir, get_forge_cache_dir, get_library_dir, maven_identifier_to_path}};
+use crate::{app::{downloader::{Download, DownloadErr}, notifier::Notifier, utils::*}, launcher::modloaders::forge::{legacy_installer::LegacyInstallerManifest, ForgeVersionManifest}};
 
-use super::forge::ForgeInstallProfile;
+use super::install_profile::{ForgeInstallProfile, ModernInstallProfile};
 
 pub struct ForgeInstaller;
 
@@ -24,10 +25,9 @@ impl ForgeInstaller {
             None
         ).download(client, notifier).await.map(|_| path.clone());
 
-        debug!("{:?}", download);
-
         if let Err(DownloadErr::Response(StatusCode::NOT_FOUND)) = download {
             debug!("Falling back to {}", format!("https://maven.minecraftforge.net/net/minecraftforge/forge/{mc_ver}-{forge_ver}-{mc_ver}/forge-{mc_ver}-{forge_ver}-{mc_ver}-installer.jar"));
+            
             Download::new(
                 path.clone(),
                 &format!("https://maven.minecraftforge.net/net/minecraftforge/forge/{mc_ver}-{forge_ver}-{mc_ver}/forge-{mc_ver}-{forge_ver}-{mc_ver}-installer.jar"),
@@ -47,16 +47,28 @@ impl ForgeInstaller {
 
         if !path.is_file() {
             notifier.set_progress(1, 5);
-            let mut install_profile = ForgeInstallProfile::get(mc_ver, forge_ver, client, notifier).await.expect("Failed to get Forge install profile!");
 
-            notifier.send_progress("Downloading installer libraries...", 3);
-            install_profile.download_libraries(notifier.make_new()).await;
+            if let Some(install_profile) = ForgeInstallProfile::get(mc_ver, forge_ver, client, notifier).await {
+                match install_profile {
+                    ForgeInstallProfile::Modern(mut profile) => {
+                        notifier.send_progress("Downloading installer libraries...", 3);
+                        profile.download_libraries(notifier.make_new()).await;
+            
+                        notifier.send_progress("Running installer processors...", 4);
+                        profile.process(Side::Client, java_path, notifier).await;
+            
+                        notifier.set_progress(0, 0);
+                        notifier.send_success("Successfully installed forge");
+                    },
+                    ForgeInstallProfile::Legacy(_) => {
+                        debug!("Legacy install profile found, no further actions required");
 
-            notifier.send_progress("Running installer processors...", 4);
-            install_profile.process(Side::Client, java_path, notifier).await;
+                        notifier.set_progress(0, 0);
+                        notifier.send_success("Successfully installed forge");
+                    },
+                }
 
-            notifier.set_progress(0, 0);
-            notifier.send_success("Successfully installed forge");
+            }
         }
     }
 
@@ -72,17 +84,39 @@ impl ForgeInstaller {
             installer, 
             JarOptionBuilder::builder()
             .targets(&vec!["version.json", "install_profile.json", "data"])
-            .ext("the library has a bug that requires both of these to be set") // otherwise it will always extract all files
+            .ext("jar")
             .build()
         ).expect("Failed to extract Forge installer jar!");
 
-        let files = jar.files.iter().filter(|(_, contents)| !contents.is_empty());
-        for (f_path, f_contents) in files {
-            let full_path = get_installer_extracts_dir(mc_ver, forge_ver).join(f_path);
-            if let Some(p) = full_path.parent() {
-                create_dir_all(p).expect(&format!("Failed to create parent directories {p:?}"))
+        let legacy_installer = jar.files.iter().find(|(name, _)| **name == "version.json".to_string()).is_none(); // For versions 1.6 to 1.9
+
+        for (f_path, f_contents) in jar.files.iter().filter(|(_, contents)| !contents.is_empty()) {
+            let is_legacy = legacy_installer && f_path == "install_profile.json";
+
+            if is_legacy {
+                info!("Detected legacy Forge installer! Running workarounds...");
+                let legacy_manifest: LegacyInstallerManifest = serde_json::from_slice(&f_contents).expect("Failed to parse legacy installer manifest!");
+
+                let version_manifest_path = ForgeVersionManifest::get_path(mc_ver, forge_ver);
+                let install_profile_path = ForgeInstallProfile::get_path(mc_ver, forge_ver);
+
+                legacy_manifest.install_profile.copy_libraries(&jar.files).await;
+
+                create_dir_parents(&version_manifest_path).await;
+                create_dir_parents(&install_profile_path).await;
+
+                fs::write(
+                    version_manifest_path,
+                    serde_json::to_string_pretty(&legacy_manifest.version_manifest).unwrap()
+                ).await.expect("Failed to write manifest to file!");
+                fs::write(
+                    install_profile_path,
+                    serde_json::to_string_pretty(&legacy_manifest.install_profile).unwrap()
+                ).await.expect("Failed to write install profile to file!");
+
+            } else {
+                fs::write(f_path, f_contents).await.expect("Failed to write manifest to file!");
             }
-            fs::write(full_path, f_contents).expect("Failed to write manifest to file!");
         }
     }
 }
@@ -99,7 +133,7 @@ pub struct ForgeProcessor {
 
 
 impl ForgeProcessor {
-    pub async fn run(&self, side: &Side, install_profile: &ForgeInstallProfile, java_path: &str) {
+    pub async fn run(&self, side: &Side, install_profile: &ModernInstallProfile, java_path: &str) {
         let shouldrun = self.sides.is_none() || self.sides.as_ref().is_some_and(|s| s.contains(side));
 
         if !shouldrun { return; }
@@ -137,7 +171,7 @@ impl ForgeProcessor {
         }
     }
 
-    fn parse_args(&self, install_profile: &ForgeInstallProfile, side: &Side) -> Vec<String> {
+    fn parse_args(&self, install_profile: &ModernInstallProfile, side: &Side) -> Vec<String> {
         self.args.iter().map(|arg| {
             let mut final_arg = arg.to_string();
             if arg.starts_with("{") && arg.ends_with("}") {
@@ -187,39 +221,4 @@ impl ForgeProcessor {
 pub enum Side {
     Server,
     Client
-}
-
-pub fn get_jar_main_class(jar_path: PathBuf) -> String {
-    let jar = jars::jar(
-        &jar_path,
-        JarOptionBuilder::builder()
-        .keep_meta_info().target("META-INF/MANIFEST.MF")
-        .ext("MF")
-        .build()    
-    ).expect(&format!("Failed to open jar {jar_path:?}"));
-
-    let jar_mf = String::from_utf8_lossy(
-        jar.files.iter().find(|&(path, _)| {
-            path == "META-INF/MANIFEST.MF"
-        }).expect(&format!("Could not find MANIFEST.MF in jar {jar_path:?}")).1
-    );
-
-    let main_class = jar_mf.split("\n").find(|&line| {
-        line.starts_with("Main-Class:")
-    }).expect(&format!("Could not find main class in jar manifest {jar_mf}"))
-    .split_once(": ")
-    .unwrap()
-    .1.trim();
-
-    main_class.to_string()
-}
-
-pub fn get_installer_extracts_dir(mc_ver: &str, forge_ver: &str) -> PathBuf {
-    get_forge_cache_dir().join(format!("forge-{mc_ver}-{forge_ver}"))
-}
-pub fn get_manifest_path(mc_ver: &str, forge_ver: &str) -> PathBuf {
-    get_installer_extracts_dir(mc_ver, forge_ver).join("version.json")
-}
-pub fn get_install_profile_path(mc_ver: &str, forge_ver: &str) -> PathBuf {
-    get_installer_extracts_dir(mc_ver, forge_ver).join("install_profile.json")
 }

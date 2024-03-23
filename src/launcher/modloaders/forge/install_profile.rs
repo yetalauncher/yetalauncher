@@ -1,32 +1,25 @@
-use std::{fs, collections::HashMap};
+use std::{collections::HashMap, path::PathBuf};
 
 use log::{*};
 use reqwest::Client;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use tokio::fs;
 
-use crate::{app::{downloader::Downloader, notifier::Notifier, utils::{get_library_dir, maven_identifier_to_path}}, launcher::launching::mc_structs::{MCArguments, MCLibrary}};
+use crate::{app::{downloader::Downloader, notifier::Notifier, utils::{get_installer_extracts_dir, get_library_dir, maven_identifier_to_path}}, launcher::launching::mc_structs::MCLibrary};
 
-use super::forge_installer::{ForgeInstaller, get_manifest_path, get_install_profile_path, ForgeProcessor, Side};
+use super::{installer::{ForgeInstaller, ForgeProcessor, Side}, legacy_installer::LegacyInstallProfile};
 
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ForgeVersionManifest {
-    pub arguments: Option<MCArguments>,
-    pub minecraft_arguments: Option<String>,
-    pub id: String,
-    pub libraries: Vec<MCLibrary>,
-    pub main_class: String,
-    pub inherits_from: String,
-    pub release_time: String,
-    pub time: String,
-    #[serde(rename = "type")]
-    pub typ: String,
+#[serde(untagged)]
+pub enum ForgeInstallProfile {
+    Modern(ModernInstallProfile),
+    Legacy(LegacyInstallProfile)
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ForgeInstallProfile {
+pub struct ModernInstallProfile {
     pub spec: Option<u16>,
     pub version: String,
     pub minecraft: String,
@@ -42,32 +35,25 @@ pub struct ForgeMappings {
     server: String
 }
 
-impl ForgeVersionManifest {
-    pub async fn get(mc_ver: &str, forge_ver: &str, client: &Client, notifier: &mut Notifier) -> Option<Self> {
-        let path = get_manifest_path(mc_ver, forge_ver);
-        if !path.exists() {
-            notifier.set_progress(1, 2);
-            ForgeInstaller::extract_needed(mc_ver, forge_ver, client, notifier).await;
-            notifier.send_success("Got Forge version manifest");
-        }
-
-        let manifest = fs::read_to_string(path).expect("Failed to read manifest file!?");
-        serde_json::from_str(&manifest).ok()
-    }
-
-}
 
 impl ForgeInstallProfile {
     pub async fn get(mc_ver: &str, forge_ver: &str, client: &Client, notifier: &mut Notifier) -> Option<Self> {
-        let path = get_install_profile_path(mc_ver, forge_ver);
+        let path = Self::get_path(mc_ver, forge_ver);
         if !path.exists() {
             ForgeInstaller::extract_needed(mc_ver, forge_ver, client, notifier).await;
         }
 
-        let install_profile = fs::read_to_string(path).expect("Failed to read install profile file!?");
+        let install_profile = fs::read_to_string(path).await.ok()?;
         Some(serde_json::from_str(&install_profile).unwrap())
     }
 
+
+    pub fn get_path(mc_ver: &str, forge_ver: &str) -> PathBuf {
+        get_installer_extracts_dir(mc_ver, forge_ver).join("install_profile.json")
+    }
+}
+
+impl ModernInstallProfile {
     pub async fn process(&self, side: Side, java_path: &str, notifier: &mut Notifier) {
         let length = self.processors.len();
 

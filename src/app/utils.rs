@@ -67,6 +67,38 @@ pub fn split_vec_into<T>(mut vec: Vec<T>, output_count: usize) -> Vec<Vec<T>> {
     result
 }
 
+pub fn get_jar_main_class(jar_path: PathBuf) -> String {
+    let jar = jars::jar(
+        &jar_path,
+        jars::JarOptionBuilder::builder()
+        .keep_meta_info()
+        .target("META-INF/MANIFEST.MF")
+        .ext("MF")
+        .build()    
+    ).expect(&format!("Failed to open jar {jar_path:?}"));
+
+    let jar_mf = String::from_utf8_lossy(
+        jar.files.iter().find(|&(path, _)| {
+            path == "META-INF/MANIFEST.MF"
+        }).expect(&format!("Could not find MANIFEST.MF in jar {jar_path:?}")).1
+    );
+
+    let main_class = jar_mf.split("\n").find(|&line| {
+        line.starts_with("Main-Class:")
+    }).expect(&format!("Could not find main class in jar manifest {jar_mf}"))
+    .split_once(": ")
+    .unwrap()
+    .1.trim();
+
+    main_class.to_string()
+}
+
+pub async fn create_dir_parents(path: &PathBuf) {
+    if let Some(p) = path.parent() {
+        fs::create_dir_all(p).await.expect(&format!("Failed to create parent directories {p:?}"))
+    }
+}
+
 
 pub fn get_classpath_separator() -> String { String::from(if cfg!(windows) { ";" } else { ":" }) }
 
@@ -80,3 +112,6 @@ pub fn get_assets_dir() -> PathBuf { get_data_dir().join("assets") }
 pub fn get_log4j_dir() -> PathBuf { get_data_dir().join("log4j_configs") }
 
 pub fn get_forge_cache_dir() -> PathBuf { get_data_dir().join("forge_cache") }
+pub fn get_installer_extracts_dir(mc_ver: &str, forge_ver: &str) -> PathBuf {
+    get_forge_cache_dir().join(format!("forge-{mc_ver}-{forge_ver}"))
+}
