@@ -2,7 +2,7 @@ use log::{info, error};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-use crate::launcher::launching::mc_structs::MCArguments;
+use crate::{app::utils::maven_identifier_to_path, launcher::launching::mc_structs::{MCArguments, MCLibrary}};
 
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -39,5 +39,19 @@ impl FabricVersionManifest {
                 None
             }
         }
+    }
+}
+
+impl FabricLibrary {
+    pub fn to_vanilla(self) -> MCLibrary {
+        let path = maven_identifier_to_path(&self.name);
+
+        MCLibrary::new_simple(
+            self.name,
+            format!("{}{}", self.url, path),
+            path,
+            None,
+            self.sha1
+        )
     }
 }

@@ -93,7 +93,8 @@ impl Downloader {
             result.unwrap();
         }
 
-        notifier.send_success(&format!("Finished downloading {text}"));
+        notifier.set_progress(0, 0);
+        notifier.send_success(&format!("Finished downloading {total} {text}"));
     }
 }
 

@@ -9,6 +9,25 @@ use crate::app::{downloader::Download, utils::{download_file_checked, get_librar
 use super::mc_structs::*;
 
 impl MCLibrary {
+    pub fn new_simple(name: String, url: String, path: String, size: Option<u32>, sha1: Option<String>) -> Self {
+        Self {
+            downloads: MCLibraryDownloads {
+                artifact: Some(MCLibraryDownloadsArtifacts {
+                    path,
+                    url,
+                    size,
+                    sha1
+                }),
+                classifiers: None,
+                natives: None
+            },
+            name,
+            rules: None,
+            natives: None,
+            extract: None,
+        }
+    }
+
     pub fn get_lib_downloads(&self) -> Vec<&MCLibraryDownloadsArtifacts> {
         let mut paths = Vec::new();
 

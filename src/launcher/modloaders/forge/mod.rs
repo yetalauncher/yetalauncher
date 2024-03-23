@@ -1,11 +1,10 @@
 use std::path::PathBuf;
 
 use tokio::fs;
-
 use reqwest::Client;
 use serde::{Serialize, Deserialize};
 
-use crate::{app::{notifier::Notifier, utils::get_installer_extracts_dir}, launcher::launching::mc_structs::{MCArguments, MCLibrary}};
+use crate::{app::{consts::MINECRAFT_LIBRARY_URL, notifier::Notifier, utils::{get_installer_extracts_dir, maven_identifier_to_path}}, launcher::launching::mc_structs::{MCArguments, MCLibrary}};
 
 use self::installer::ForgeInstaller;
 
@@ -60,5 +59,33 @@ impl ForgeVersionManifest {
 
     pub fn get_path(mc_ver: &str, forge_ver: &str) -> PathBuf {
         get_installer_extracts_dir(mc_ver, forge_ver).join("version.json")
+    }
+}
+
+impl ForgeLibrary {
+    pub fn to_vanilla(self) -> MCLibrary {
+        match self {
+            ForgeLibrary::Vanilla(mut lib) => {
+                if let Some(artifact) = &mut lib.downloads.artifact {
+                    if artifact.url.is_empty() && lib.name.contains("minecraftforge") {
+                        let maven_name = maven_identifier_to_path(&lib.name);
+                        let forge_name = format!("{}-universal.jar", &maven_name[..maven_name.len()-4]);
+
+                        artifact.url = format!("https://maven.minecraftforge.net/{forge_name}");
+                    }
+                }
+                lib
+            },
+            ForgeLibrary::Forge(lib) => {
+                let path = maven_identifier_to_path(&lib.name);
+                let url = if let Some(lib_url) = lib.url {
+                    format!("{lib_url}{path}")
+                } else {
+                    format!("{MINECRAFT_LIBRARY_URL}/{path}")
+                };
+
+                MCLibrary::new_simple(lib.name, url, path, None, None)
+            }
+        }
     }
 }
