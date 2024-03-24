@@ -1,10 +1,10 @@
-use std::{path::{Path, PathBuf}, str::FromStr, sync::Arc};
+use std::{path::{Path, PathBuf}, str::FromStr, sync::{Arc, RwLock}};
 
 use log::warn;
 use serde::{Serialize, Deserialize};
 use tokio::fs;
 
-use crate::app::{consts::META_FILE_NAME, settings::AppSettings};
+use crate::{app::consts::META_FILE_NAME, YetaLauncher};
 
 use super::{errors::InstanceGatherError, IResult, InstanceType};
 
@@ -30,7 +30,7 @@ impl MMCConfig {
         )
     }
 
-    pub fn get_icon(&self, settings: Arc<AppSettings>) -> Option<String> {
+    pub fn get_icon(&self, settings: Arc<RwLock<YetaLauncher>>) -> Option<String> {
         let internal_icons = [
             "default", "bee", "brick", "chicken", "creeper", "diamond", "dirt", "enderman", "enderpearl", "flame", "fox", "gear", "herobrine",
             "gold", "grass", "iron", "magitech", "meat", "modrinth", "netherstar", "planks", "prismlauncher", "squarecreeper", "steve", 
@@ -45,7 +45,7 @@ impl MMCConfig {
         if internal_icons.iter().any(|&i| icon_key == i) {
             None
         } else {
-            let icon_path = PathBuf::from_str(settings.icon_path.as_ref()?).ok()?;
+            let icon_path = PathBuf::from_str(settings.read().unwrap().settings.icon_path.as_ref()?).ok()?;
             Some(icon_path.join(icon_key).to_string_lossy().to_string())
         }
     }

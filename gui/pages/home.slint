@@ -20,7 +20,10 @@ export component HomePage inherits VerticalLayout {
             icon: @image-url("../../resources/tabler-icons/refresh.svg");
             
             clicked => {
-                Settings.get-instances(true);
+                if !Settings.is-loading-instances {
+                    Settings.get-instances(true);
+                    Settings.is-loading-instances = true;
+                }
             }
         }
 
@@ -45,8 +48,9 @@ export component HomePage inherits VerticalLayout {
 
     HorizontalLayout {
         init => {
-            if Settings.instances.length == 0 {
+            if Settings.instances.length == 0 && !Settings.is-loading-instances {
                 Settings.get-instances(false);
+                Settings.is-loading-instances = true;
             }
         }
     }

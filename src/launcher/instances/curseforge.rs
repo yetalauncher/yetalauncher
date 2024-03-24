@@ -1,11 +1,11 @@
-use std::{path::{Path, PathBuf}, str::FromStr, sync::Arc};
+use std::{path::{Path, PathBuf}, str::FromStr, sync::{Arc, RwLock}};
 
 use log::*;
 use reqwest::Client;
 use serde::{Serialize, Deserialize};
 use tokio::fs;
 
-use crate::app::{consts::META_FILE_NAME, settings::AppSettings, utils::download_file_checked};
+use crate::{app::{consts::META_FILE_NAME, utils::download_file_checked}, YetaLauncher};
 
 use super::{errors::InstanceGatherError, IResult, InstanceType};
 
@@ -56,10 +56,15 @@ impl CFInstance {
         )
     }
 
-    async fn download_icon(instance_path: &PathBuf, settings: Arc<AppSettings>) -> IResult<Option<String>> {
+    async fn download_icon(instance_path: &PathBuf, app: Arc<RwLock<YetaLauncher>>) -> IResult<Option<String>> {
         let instance = Self::get(instance_path).await?;
 
-        if let Some(path) = settings.icon_path.as_ref() {
+        let icon_path = {
+            let app = app.read().unwrap();
+            app.settings.icon_path.clone()
+        };
+
+        if let Some(path) = icon_path {
             let file = PathBuf::from_str(&path.to_string()).map_err(
                 |err| InstanceGatherError::IconPathParseFailed(path.to_string(), err)
             )?.join(format!("curseforge_{}", fastrand::u32(..)));
@@ -100,7 +105,7 @@ pub struct CFMetadata {
 }
 
 impl CFMetadata {
-    pub async fn get(instance_path: &PathBuf, settings: Arc<AppSettings>) -> IResult<Self> {
+    pub async fn get(instance_path: &PathBuf, app: Arc<RwLock<YetaLauncher>>) -> IResult<Self> {
         let path = instance_path.join(META_FILE_NAME);
 
         match fs::read(&path).await {
@@ -109,7 +114,7 @@ impl CFMetadata {
                     Ok(parsed) => Ok(parsed),
                     Err(err) => {
                         warn!("{}", InstanceGatherError::ParseFailedMeta(path, err));
-                        Ok(Self::generate(instance_path, settings.clone()).await?)
+                        Ok(Self::generate(instance_path, app.clone()).await?)
                     },
                 };
                 
@@ -120,24 +125,24 @@ impl CFMetadata {
                         )
                     } else { false } // (if file path is unset, no need to regenerate ever)
                 ) {
-                    Self::generate(instance_path, settings).await // then regenerate the metadata
+                    Self::generate(instance_path, app).await // then regenerate the metadata
                 } else {
                     result
                 }
             },
             Err(err) => {
                 warn!("{}", InstanceGatherError::FileReadFailed(path, err));
-                Self::generate(instance_path, settings).await
+                Self::generate(instance_path, app).await
             }
         }
     }
 
-    async fn generate(instance_path: &PathBuf, settings: Arc<AppSettings>) -> IResult<Self> {
+    async fn generate(instance_path: &PathBuf, app: Arc<RwLock<YetaLauncher>>) -> IResult<Self> {
         let path = instance_path.join(META_FILE_NAME);
 
         let meta = CFMetadata {
             instance_id: fastrand::u32(..),
-            saved_icon: match CFInstance::download_icon(instance_path, settings).await {
+            saved_icon: match CFInstance::download_icon(instance_path, app).await {
                 Ok(icon) => icon,
                 Err(err) => {
                     warn!("{err}");

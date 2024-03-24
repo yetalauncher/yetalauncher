@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, fs::File, io::BufReader, path::PathBuf, sync::Arc};
+use std::{cmp::Ordering, fs::File, io::BufReader, path::PathBuf, sync::{Arc, RwLock}};
 
 use clone_macro::clone;
 use slint::{Image, SharedPixelBuffer};
@@ -7,7 +7,7 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use log::{*};
 use serde::{Deserialize, Serialize};
 
-use crate::{app::{settings::AppSettings, slint_utils::SlintOption, notifier::Notifier}, SlInstanceType, SlSimpleInstance};
+use crate::{app::{notifier::Notifier, slint_utils::SlintOption}, SlInstanceType, SlSimpleInstance, YetaLauncher};
 
 use self::{errors::InstanceGatherError, multimc::*, curseforge::*};
 
@@ -47,30 +47,30 @@ pub enum InstanceType {
 }
 
 
-pub async fn get_instances(settings: Arc<AppSettings>, notifier: Notifier) -> IResult<Vec<SimpleInstance>> {
+pub async fn get_instances(app: Arc<RwLock<YetaLauncher>>, notifier: Notifier) -> IResult<Vec<SimpleInstance>> {
     notifier.send_msg("Scanning instances...");
     let time_start = Instant::now();
 
-    let dir = settings.instance_path.as_ref().ok_or(InstanceGatherError::PathUnset)?;
-    let mut paths = fs::read_dir(dir).await.or(Err(InstanceGatherError::DirectoryReadFailed(dir.to_string())))?;
+    let dir = app.read().unwrap().settings.instance_path.clone().ok_or(InstanceGatherError::PathUnset)?;
+    let mut paths = fs::read_dir(&dir).await.or(Err(InstanceGatherError::DirectoryReadFailed(dir.to_string())))?;
 
     let mut instances = Vec::new();
-    let mut tasks = JoinSet::new();
+    let mut tasks: JoinSet<Option<IResult<SimpleInstance>>> = JoinSet::new();
 
     while let Ok(Some(path)) = paths.next_entry().await {
         if path.file_type().await.map_err(
             |err| InstanceGatherError::FileTypeFailed(path.path(), err)
         )?.is_dir() {
-            tasks.spawn(clone!([settings], async move {
+            tasks.spawn(clone!([app], async move {
                 let p = &path.path();
                 trace!("Scanning folder {p:?}");
 
                 if p.join("minecraftinstance.json").is_file() {
                     trace!("Found minecraftinstance.json in {p:?}");
-                    Some(SimpleInstance::get_from_cf(&path.path(), settings).await)
+                    Some(SimpleInstance::get_from_cf(&path.path(), app).await)
                 } else if p.join("instance.cfg").is_file() {
                     trace!("Found instance.cfg in {p:?}");
-                    Some(SimpleInstance::get_from_mmc(&path.path(), settings).await)
+                    Some(SimpleInstance::get_from_mmc(&path.path(), app).await)
                 } else {
                     info!("The folder at {p:?} does not contain a recognized minecraft instance!");
                     None
@@ -109,13 +109,13 @@ pub async fn get_instances(settings: Arc<AppSettings>, notifier: Notifier) -> IR
 
 
 impl SimpleInstance {
-    pub async fn get_from_mmc(path: &PathBuf, settings: Arc<AppSettings>) -> IResult<Self> {
+    pub async fn get_from_mmc(path: &PathBuf, app: Arc<RwLock<YetaLauncher>>) -> IResult<Self> {
         let meta = MMCMetadata::get(path).await?;
         let instance_cfg = MMCConfig::get(path).await?;
         let pack_json = MMCPack::get(path).await?;
 
         Ok(SimpleInstance {
-            icon_path: instance_cfg.get_icon(settings),
+            icon_path: instance_cfg.get_icon(app),
             name: instance_cfg.name,
             minecraft_path: if path.join(".minecraft").exists() {
                 path.join(".minecraft")
@@ -155,8 +155,8 @@ impl SimpleInstance {
         })
     }
 
-    pub async fn get_from_cf(path: &PathBuf, settings: Arc<AppSettings>) -> IResult<Self> {
-        let meta = CFMetadata::get(path, settings).await?;
+    pub async fn get_from_cf(path: &PathBuf, app: Arc<RwLock<YetaLauncher>>) -> IResult<Self> {
+        let meta = CFMetadata::get(path, app).await?;
         let instance_json = CFInstance::get(path).await?;
 
         Ok(SimpleInstance {
