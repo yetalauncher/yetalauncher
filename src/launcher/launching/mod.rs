@@ -1,10 +1,10 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use log::{*};
 use reqwest::Client;
 use tokio::{fs, process::Command};
 
-use crate::{app::{notifier::Notifier, settings::AppSettings, utils::{get_classpath_separator, get_library_dir}}, launcher::{authentication::auth_structs::Accounts, launching::mc_structs::*}};
+use crate::{app::{notifier::Notifier, utils::{get_classpath_separator, get_library_dir}}, launcher::{authentication::auth_structs::Accounts, launching::mc_structs::*}, YetaLauncher};
 
 use super::{authentication::auth_structs::MCAccount, instances::SimpleInstance, java::JavaDetails};
 
@@ -21,8 +21,12 @@ struct Args {
 
 
 impl SimpleInstance {
-    pub async fn launch(&self, settings: &AppSettings, accounts: &mut Accounts, mut notifier: Notifier) -> Result<(), String> {
-        let SimpleInstance { minecraft_path, id, mc_version, name, .. } = &self;
+    pub async fn launch(app: Arc<YetaLauncher>, instance_id: i32, mut notifier: Notifier) -> Result<(), String> {
+        let instance = app.instances.read().unwrap().as_ref().map(|instances| {
+            instances.iter().find(|&inst| inst.id == instance_id as u32).unwrap().clone()
+        }).unwrap();
+
+        let SimpleInstance { minecraft_path, id, mc_version, name, .. } = &instance;
         notifier.set_progress(1, 9);
 
         if !minecraft_path.is_dir() {
@@ -38,16 +42,16 @@ impl SimpleInstance {
         info!("Launching: {minecraft_path:?}, Version: {mc_version}, id: {id}");
         notifier.send_msg(&format!("Launching {name}..."));
 
+
         let client = Client::new();
-        let java = self.get_java(settings, &client).await.map_err(
+        let java = instance.get_java(app.clone(), &client).await.map_err(
             |err| { notifier.send_error(&err); err }
         )?;
-        let args = self.get_arguments(java, accounts, &client, &mut notifier).await?;
+        let args = instance.get_arguments(&java, app.clone(), &client, &mut notifier).await?;
         let additional_args = java.get_args();
     
         debug!("Args: {:#?}\nCustom Args: {}", args, additional_args);
         info!("Launching NOW!");
-
 
         let mut process = Command::new(&java.path)
         .current_dir(&minecraft_path)
@@ -78,14 +82,15 @@ impl SimpleInstance {
         Ok(())
     }
     
-    async fn get_arguments(&self, java: &JavaDetails, accounts: &mut Accounts, client: &Client, notifier: &mut Notifier) -> Result<Args, String> {
+    async fn get_arguments(&self, java: &JavaDetails, app: Arc<YetaLauncher>, client: &Client, notifier: &mut Notifier) -> Result<Args, String> {
         let loader = self.modloader.typ;
     
         notifier.send_progress("Preparing account...", 2);
         info!("Preparing account...");
-        let account = accounts.get_active_account(client, false).await
-            .ok_or("Could not get the selected account!".to_string())?;
-        
+        let account = Accounts::get_account_from_app(app, client, false)
+        .await
+        .ok_or("Could not get the selected account!".to_string())?;
+
 
         notifier.send_progress(&format!("Getting version details for {}...", self.mc_version), 3);
         info!("Getting version details for {}...", self.mc_version);
@@ -129,7 +134,7 @@ impl SimpleInstance {
                     game: version.get_game_args(),
                     main_class: version.get_main_class()
                 },
-                account,
+                &account,
                 version,
                 &self.minecraft_path,
                 &client,
@@ -192,12 +197,12 @@ impl SimpleInstance {
         }
     }
 
-    async fn get_java<'a>(&self, settings: &'a AppSettings, client: &Client) -> Result<&'a JavaDetails, String> {
+    async fn get_java<'a>(&self, app: Arc<YetaLauncher>, client: &Client) -> Result<JavaDetails, String> {
         let version = MCVersionDetails::from_id(&self.mc_version, client).await.ok_or_else(
             || "Could not get version details for this Minecraft version!".to_string()
         )?;
 
-        settings.java_settings
+        app.settings.read().unwrap().java_settings
         .iter()
         .find(|&java| {
             java.minecraft_versions.max.as_ref().map_or(
@@ -209,8 +214,8 @@ impl SimpleInstance {
                 false, 
                 |min| min.release_time <= version.release_time
             )
-        }).ok_or_else(
-            || "Could not find Java to use for this version in the settings!".to_string()
-        )
+        })
+        .map(Clone::clone)
+        .ok_or_else(|| "Could not find Java to use for this version in the settings!".to_string())
     }
 }

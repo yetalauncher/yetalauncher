@@ -1,10 +1,10 @@
-use std::{fs::{self, create_dir_all}, path::PathBuf};
+use std::{fs::{self, create_dir_all}, path::PathBuf, sync::Arc};
 
 use log::*;
 use reqwest::Client;
 use slint::{ModelRc, VecModel};
 
-use crate::{launcher::authentication::auth_structs::*, slint_generatedMainWindow::{SlMCAccount, SlMCSkin, SlAccounts}};
+use crate::{launcher::authentication::auth_structs::*, slint_generatedMainWindow::{SlAccounts, SlMCAccount, SlMCSkin}, YetaLauncher};
 
 use super::{consts::ACCOUNT_FILE_NAME, slint_utils::SlintOption, utils::get_config_dir};
 
@@ -61,6 +61,14 @@ impl Accounts {
             }
         }
         accounts_path
+    }
+
+    pub async fn get_account_from_app(app: Arc<YetaLauncher>, client: &Client, force: bool) -> Option<MCAccount> {
+        let mut accounts = {
+            app.accounts.write().unwrap().clone()
+        };
+
+        accounts.get_active_account(client, force).await.map(Clone::clone)
     }
 
     pub async fn get_active_account(&mut self, client: &Client, force: bool) -> Option<&MCAccount> {

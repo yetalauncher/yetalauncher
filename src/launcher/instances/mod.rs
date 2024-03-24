@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, fs::File, io::BufReader, path::PathBuf, sync::{Arc, RwLock}};
+use std::{cmp::Ordering, fs::File, io::BufReader, path::PathBuf, sync::Arc};
 
 use clone_macro::clone;
 use slint::{Image, SharedPixelBuffer};
@@ -47,11 +47,11 @@ pub enum InstanceType {
 }
 
 
-pub async fn get_instances(app: Arc<RwLock<YetaLauncher>>, notifier: Notifier) -> IResult<Vec<SimpleInstance>> {
+pub async fn get_instances(app: Arc<YetaLauncher>, notifier: Notifier) -> IResult<Vec<SimpleInstance>> {
     notifier.send_msg("Scanning instances...");
     let time_start = Instant::now();
 
-    let dir = app.read().unwrap().settings.instance_path.clone().ok_or(InstanceGatherError::PathUnset)?;
+    let dir = app.settings.read().unwrap().instance_path.clone().ok_or(InstanceGatherError::PathUnset)?;
     let mut paths = fs::read_dir(&dir).await.or(Err(InstanceGatherError::DirectoryReadFailed(dir.to_string())))?;
 
     let mut instances = Vec::new();
@@ -109,7 +109,7 @@ pub async fn get_instances(app: Arc<RwLock<YetaLauncher>>, notifier: Notifier) -
 
 
 impl SimpleInstance {
-    pub async fn get_from_mmc(path: &PathBuf, app: Arc<RwLock<YetaLauncher>>) -> IResult<Self> {
+    pub async fn get_from_mmc(path: &PathBuf, app: Arc<YetaLauncher>) -> IResult<Self> {
         let meta = MMCMetadata::get(path).await?;
         let instance_cfg = MMCConfig::get(path).await?;
         let pack_json = MMCPack::get(path).await?;
@@ -155,7 +155,7 @@ impl SimpleInstance {
         })
     }
 
-    pub async fn get_from_cf(path: &PathBuf, app: Arc<RwLock<YetaLauncher>>) -> IResult<Self> {
+    pub async fn get_from_cf(path: &PathBuf, app: Arc<YetaLauncher>) -> IResult<Self> {
         let meta = CFMetadata::get(path, app).await?;
         let instance_json = CFInstance::get(path).await?;
 

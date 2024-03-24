@@ -1,6 +1,6 @@
 use std::{sync::{Arc, RwLock}, time::Instant};
 
-use app::notifier::{InternalNotifier, Notifier};
+use app::notifier::InternalNotifier;
 use launcher::{authentication::auth_structs::Accounts, instances::SimpleInstance};
 use log::*;
 use reqwest::Client;
@@ -33,11 +33,11 @@ fn main() {
     info!("Exiting...");
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct YetaLauncher {
-    settings: AppSettings,
-    accounts: Accounts,
-    instances: Option<Vec<SimpleInstance>>
+    settings: RwLock<AppSettings>,
+    accounts: RwLock<Accounts>,
+    instances: RwLock<Option<Vec<SimpleInstance>>>
 }
 
 impl YetaLauncher {
@@ -54,7 +54,7 @@ impl YetaLauncher {
     }
 
     fn run(self, window: MainWindow, time: Instant) -> Result<(), PlatformError> {
-        let app = Arc::new(RwLock::new(self));
+        let app = Arc::new(self);
         let runtime = Runtime::new().unwrap();
         let rt = runtime.handle().clone();
 
@@ -64,7 +64,7 @@ impl YetaLauncher {
 
         let settings = window.global::<Settings>();
 
-        settings.set_settings(app.read().unwrap().settings.to_slint());
+        settings.set_settings(app.settings.read().unwrap().to_slint());
 
 
         rt.spawn(clone!([cancel_token, { window.as_weak() } as window], async move {
@@ -92,13 +92,13 @@ impl YetaLauncher {
             rt.spawn(clone!([window, app], async move {
                 debug!("Opening folder picker...");
                 if let Some(folder) = AsyncFileDialog::new().set_title("Select Instance folder").pick_folder().await {
-                    let mut app = app.write().unwrap();
+                    let mut settings = app.settings.write().unwrap();
     
-                    app.settings.instance_path = Some(folder.path().to_str().expect("Failed to convert folder path to valid UTF-8!").to_string());
-                    app.settings.set();
+                    settings.instance_path = Some(folder.path().to_str().expect("Failed to convert folder path to valid UTF-8!").to_string());
+                    settings.set();
                 }
                 invoke_from_event_loop(move || {
-                    app.read().unwrap().sync_settings(window);
+                    app.sync_settings(window);
                 }).unwrap();
             }));
         }));
@@ -109,39 +109,39 @@ impl YetaLauncher {
                 debug!("Opening folder picker...");
                 
                 if let Some(folder) = AsyncFileDialog::new().set_title("Select Icon folder").pick_folder().await {
-                    let mut app = app.write().unwrap();
+                    let mut settings = app.settings.write().unwrap();
     
-                    app.settings.icon_path = Some(folder.path().to_str().expect("Failed to convert folder path to valid UTF-8!").to_string());
-                    app.settings.set();
+                    settings.icon_path = Some(folder.path().to_str().expect("Failed to convert folder path to valid UTF-8!").to_string());
+                    settings.set();
                 }
                 invoke_from_event_loop(move || {
-                    app.read().unwrap().sync_settings(window);
+                    app.sync_settings(window);
                 }).unwrap();
             }));
         }));
 
         settings.on_update_instance_size(clone!([{ window.as_weak() } as window, app], move |new_size| {
-            let mut app = app.write().unwrap();
-            app.settings.instance_size = new_size as u16;
-            app.settings.set();
+            let mut settings = app.settings.write().unwrap();
+            settings.instance_size = new_size as u16;
+            settings.set();
             app.sync_settings(window.clone());
         }));
 
         settings.on_add_java_setting(clone!([{ window.as_weak() } as window, app], move || {
-            let mut app = app.write().unwrap();
-            app.settings.java_settings.push(JavaDetails::default());
+            let mut settings = app.settings.write().unwrap();
+            settings.java_settings.push(JavaDetails::default());
             app.sync_settings(window.clone());
         }));
 
         settings.on_save_settings(clone!([{ window.as_weak() } as window, app], move || {
-            let mut app = app.write().unwrap();
+            let mut settings = app.settings.write().unwrap();
             let new_settings = window.unwrap().global::<Settings>().get_settings();
 
-            app.settings.java_settings = new_settings.java_settings.iter()
+            settings.java_settings = new_settings.java_settings.iter()
             .map(|java_setting| JavaDetails::from_slint(java_setting))
             .collect();
 
-            app.settings.set();
+            settings.set();
         }));
 
         settings.on_update_java_path(clone!([rt], move || {
@@ -197,18 +197,18 @@ impl YetaLauncher {
         settings.on_get_instances(clone!([{ window.as_weak() } as window, app, rt, notifier], move |force| {
             rt.spawn(clone!([window, app, notifier, rt], async move {
 
-                if app.read().unwrap().instances.is_none() || force {
+                if app.instances.read().unwrap().is_none() || force {
                     let instances = instances::get_instances(app.clone(), notifier.make_new()).await;
 
                     match instances {
-                        Ok(inst) => app.write().unwrap().instances = Some(inst),
+                        Ok(inst) => *app.instances.write().unwrap() = Some(inst),
                         Err(err) => error!("Failed to gather instances: {err}")
                     }
                 }
 
                 invoke_from_event_loop(clone!([app, window, rt], move || {
                     spawn_local(clone!([app, window, rt], async move {
-                        let slint_instances = if let Some(instances) = &app.read().unwrap().instances {
+                        let slint_instances = if let Some(instances) = app.instances.read().unwrap().as_ref() {
                             let mut result = Vec::new();
                             let _guard = rt.enter();
                             for inst in instances {
@@ -263,14 +263,13 @@ impl YetaLauncher {
 
         settings.on_launch_instance(clone!([app, rt, notifier], move |instance_id| {
             rt.spawn(clone!([app, notifier], async move {
-                let mut app = app.write().unwrap().clone();
-                app.launch_instance(instance_id, notifier.make_new()).await;
+                SimpleInstance::launch(app, instance_id, notifier.make_new()).await.unwrap();
             }));
         }));
 
         settings.on_get_accounts(clone!([{ window.as_weak() } as window, app], move || {
             window.unwrap().global::<Settings>().set_accounts(
-                app.read().unwrap().accounts.to_slint()
+                app.accounts.read().unwrap().to_slint()
             );
         }));
 
@@ -280,7 +279,7 @@ impl YetaLauncher {
                 let mut vec = Vec::new();
 
                 let accounts = accounts.iter();
-                let per_row = (width / ((30 - app.read().unwrap().settings.instance_size) * 15) as f32).ceil() as i32;
+                let per_row = (width / ((30 - app.settings.read().unwrap().instance_size) * 15) as f32).ceil() as i32;
                 let mut i = 0;
 
                 for acc in accounts {
@@ -301,14 +300,14 @@ impl YetaLauncher {
         }));
 
         settings.on_set_selected_account(clone!([app, { window.as_weak() } as window], move |index| {
-            let mut app = app.write().unwrap();
-            app.accounts.set_selected_index(index as u32);
+            let mut accounts = app.accounts.write().unwrap();
+            accounts.set_selected_index(index as u32);
             app.sync_accounts(window.clone());
         }));
 
         settings.on_remove_account(clone!([app, { window.as_weak() } as window], move |index| {
-            let mut app = app.write().unwrap();
-            app.accounts.remove_account(index as usize);
+            let mut accounts = app.accounts.write().unwrap();
+            accounts.remove_account(index as usize);
             app.sync_accounts(window.clone());
         }));
 
@@ -321,7 +320,7 @@ impl YetaLauncher {
 
                 if let Some(()) = receiver.recv().await {
                     invoke_from_event_loop(move || {
-                        app.write().unwrap().sync_accounts(window);
+                        app.sync_accounts(window);
                     }).unwrap();
                 }
             }));
@@ -338,27 +337,17 @@ impl YetaLauncher {
 
     fn new() -> Self {
         Self {
-            settings: AppSettings::get(),
-            accounts: Accounts::get(),
-            instances: None
+            settings: RwLock::new(AppSettings::get()),
+            accounts: RwLock::new(Accounts::get()),
+            instances: RwLock::new(None)
         }
     }
 
     fn sync_settings(&self, window: Weak<MainWindow>) {
-        window.unwrap().global::<Settings>().set_settings(self.settings.to_slint());
+        window.unwrap().global::<Settings>().set_settings(self.settings.read().unwrap().to_slint());
     }
 
     fn sync_accounts(&self, window: Weak<MainWindow>) {
-        window.unwrap().global::<Settings>().set_accounts(self.accounts.to_slint());
-    }
-
-    async fn launch_instance(&mut self, instance_id: i32, notifier: Notifier) {
-        if let Some(instances) = &self.instances {
-            let instance = instances.iter()
-            .find(|inst| inst.id == instance_id as u32)
-            .expect("Could not find instance to launch! How did we get here?");
-
-            instance.launch(&self.settings, &mut self.accounts, notifier).await.unwrap();
-        }
+        window.unwrap().global::<Settings>().set_accounts(self.accounts.read().unwrap().to_slint());
     }
 }

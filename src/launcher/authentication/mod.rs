@@ -1,4 +1,4 @@
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use afire::{Server, Method, Response, Status};
 use chrono::{Utc, TimeDelta};
@@ -47,7 +47,7 @@ fn get_mc_profile_url() -> String {
 
 
 
-pub async fn add_account(rt: Handle, app: Arc<RwLock<YetaLauncher>>, notifier: Notifier, on_completion: mpsc::UnboundedSender<()>) {
+pub async fn add_account(rt: Handle, app: Arc<YetaLauncher>, notifier: Notifier, on_completion: mpsc::UnboundedSender<()>) {
     info!("Beginning login process...");
 
     if let Err(err) = open::that(get_login_url()) {
@@ -91,7 +91,7 @@ pub async fn add_account(rt: Handle, app: Arc<RwLock<YetaLauncher>>, notifier: N
     });
 }
 
-async fn add_account_code(code: &str, mut notifier: Notifier, app: Arc<RwLock<YetaLauncher>>) {
+async fn add_account_code(code: &str, mut notifier: Notifier, app: Arc<YetaLauncher>) {
     info!("Started adding new Minecraft account!");
     let client = Client::new();
 
@@ -141,7 +141,7 @@ async fn add_account_code(code: &str, mut notifier: Notifier, app: Arc<RwLock<Ye
     // trace!("{:#?}", mc_account);
     info!("Saving new Minecraft account...");
     notifier.send_progress("Saving new account...", 7);
-    app.write().unwrap().accounts.save_new_account(mc_account);
+    app.accounts.write().unwrap().save_new_account(mc_account);
 
     notifier.set_progress(0, 0);
     notifier.send_success(&format!("Successfully added account '{username}'"));
