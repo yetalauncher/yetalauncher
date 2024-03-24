@@ -96,8 +96,10 @@ impl YetaLauncher {
     
                     app.settings.instance_path = Some(folder.path().to_str().expect("Failed to convert folder path to valid UTF-8!").to_string());
                     app.settings.set();
-                    app.sync_settings(window);
                 }
+                invoke_from_event_loop(move || {
+                    app.read().unwrap().sync_settings(window);
+                }).unwrap();
             }));
         }));
 
@@ -111,8 +113,10 @@ impl YetaLauncher {
     
                     app.settings.icon_path = Some(folder.path().to_str().expect("Failed to convert folder path to valid UTF-8!").to_string());
                     app.settings.set();
-                    app.sync_settings(window);
                 }
+                invoke_from_event_loop(move || {
+                    app.read().unwrap().sync_settings(window);
+                }).unwrap();
             }));
         }));
 
@@ -120,7 +124,7 @@ impl YetaLauncher {
             let mut app = app.write().unwrap();
             app.settings.instance_size = new_size as u16;
             app.settings.set();
-            app.sync_settings(window.clone())
+            app.sync_settings(window.clone());
         }));
 
         settings.on_add_java_setting(clone!([{ window.as_weak() } as window, app], move || {
@@ -316,7 +320,9 @@ impl YetaLauncher {
                 add_account(rt, app.clone(), notifier.make_new(), sender).await;
 
                 if let Some(()) = receiver.recv().await {
-                    app.write().unwrap().sync_accounts(window);
+                    invoke_from_event_loop(move || {
+                        app.write().unwrap().sync_accounts(window);
+                    }).unwrap();
                 }
             }));
         }));
