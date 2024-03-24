@@ -1,4 +1,4 @@
-use std::sync::{Arc, RwLock};
+use std::{sync::{Arc, RwLock}, time::Instant};
 
 use app::notifier::{InternalNotifier, Notifier};
 use launcher::{authentication::auth_structs::Accounts, instances::SimpleInstance};
@@ -28,10 +28,7 @@ fn main() {
     .init()
     .unwrap_or_else(|err| eprintln!("Failed to initialize logger: {err}"));
 
-    let app = YetaLauncher::new();
-
-    app.run().expect("YetaLauncher failed to start!");
-
+    YetaLauncher::start().expect("Failed to start YetaLauncher!");
 
     info!("Exiting...");
 }
@@ -44,8 +41,19 @@ pub struct YetaLauncher {
 }
 
 impl YetaLauncher {
-    fn run(self) -> Result<(), PlatformError> {
+    pub fn start() -> Result<(), PlatformError> {
+        let time = Instant::now();
         let window = MainWindow::new()?;
+        window.show()?;
+
+        debug!("Loading (at {:?})...", Instant::now() - time);
+        let app = YetaLauncher::new();
+        app.run(window, time)?;
+
+        Ok(())
+    }
+
+    fn run(self, window: MainWindow, time: Instant) -> Result<(), PlatformError> {
         let app = Arc::new(RwLock::new(self));
         let runtime = Runtime::new().unwrap();
         let rt = runtime.handle().clone();
@@ -301,8 +309,8 @@ impl YetaLauncher {
         }));
 
         settings.on_add_account(clone!([rt, app, { window.as_weak() } as window, notifier], move || {
-            spawn_local(clone!([rt, app, window, notifier], async move {
-                let _guard = rt.enter();
+            let _guard = rt.enter();
+            rt.spawn(clone!([rt, app, window, notifier], async move {
                 let (sender, mut receiver) = mpsc::unbounded_channel();
 
                 add_account(rt, app.clone(), notifier.make_new(), sender).await;
@@ -310,13 +318,14 @@ impl YetaLauncher {
                 if let Some(()) = receiver.recv().await {
                     app.write().unwrap().sync_accounts(window);
                 }
-            })).unwrap();
+            }));
         }));
 
 
-        info!("Starting...");
+        info!("Running (took {:?})", Instant::now() - time);
         window.run()?;
 
+        debug!("Shutting down...");
         cancel_token.cancel();
         Ok(())
     }
