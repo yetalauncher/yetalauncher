@@ -27,7 +27,7 @@ jobs:
     runs-on: ${{ matrix.platform.container }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -47,10 +47,19 @@ jobs:
           strip: true
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
             name: yetalauncher-${{ matrix.platform.name }}
             path: |
-              yetalauncher*
               yetalauncher
               yetalauncher.exe
+              yetalauncher*
+              yetalauncher**
+              yetalauncher[*]
+              yetalauncher[**]
+              target/release/yetalauncher
+              target/release/yetalauncher.exe
+              target/release/yetalauncher*
+              target/release/yetalauncher**
+              target/release/yetalauncher[*]
+              target/release/yetalauncher[**]
