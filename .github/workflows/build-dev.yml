@@ -46,8 +46,14 @@ jobs:
           args: "--release"
           strip: false
 
+      - name: Mark binary as executable
+        run: chmod +x target/${{ matrix.platform.target }}/release/yetalauncher
+        if: contains(matrix.platform.name, 'linux')
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
             name: yetalauncher-${{ matrix.platform.name }}
-            path: target/${{ matrix.platform.target }}/release/yetalauncher*
+            path: |
+              target/${{ matrix.platform.target }}/release/yetalauncher
+              target/${{ matrix.platform.target }}/release/yetalauncher.exe
