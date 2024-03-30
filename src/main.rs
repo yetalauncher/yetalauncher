@@ -1,3 +1,9 @@
+//Prevent the console window opening on Windows
+#![cfg_attr(
+    all(not(debug_assertions), target_os = "windows"),
+    windows_subsystem = "windows"
+)]
+
 use std::{sync::{Arc, RwLock}, time::Instant};
 
 use app::notifier::InternalNotifier;
