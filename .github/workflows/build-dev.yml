@@ -44,22 +44,10 @@ jobs:
           command: build
           target: ${{ matrix.platform.target }}
           args: "--release"
-          strip: true
+          strip: false
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
             name: yetalauncher-${{ matrix.platform.name }}
-            path: |
-              yetalauncher
-              yetalauncher.exe
-              yetalauncher*
-              yetalauncher**
-              yetalauncher[*]
-              yetalauncher[**]
-              target/release/yetalauncher
-              target/release/yetalauncher.exe
-              target/release/yetalauncher*
-              target/release/yetalauncher**
-              target/release/yetalauncher[*]
-              target/release/yetalauncher[**]
+            path: target/${{ matrix.platform.target }}/release/yetalauncher*
