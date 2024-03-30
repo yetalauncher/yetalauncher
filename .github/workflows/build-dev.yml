@@ -1,0 +1,53 @@
+name: 'build-dev'
+on:
+  push:
+
+jobs:
+  release:
+    name: Release - ${{ matrix.platform.name }}
+    strategy:
+      matrix:
+        platform:
+          - name: windows-x86_64
+            container: windows-latest
+            target: x86_64-pc-windows-msvc
+
+          - name: macOS-x86_64
+            container: macOS-latest
+            target: x86_64-apple-darwin
+
+          - name: macOS-aarch64
+            container: macOS-latest
+            target: aarch64-apple-darwin
+          
+          - name: linux-x86_84
+            container: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+
+    runs-on: ${{ matrix.platform.container }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup mold as the linker
+        uses: rui314/setup-mold@main
+
+      - name: Setup Rust build cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build the binary
+        uses: houseabsolute/actions-rust-cross@v0
+        with:
+          command: build
+          target: ${{ matrix.platform.target }}
+          args: "--release"
+          strip: true
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+            name: yetalauncher-${{ matrix.platform.name }}
+            path: target/release/yetalauncher*
