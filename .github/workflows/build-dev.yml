@@ -25,12 +25,16 @@ jobs:
             target: x86_64-unknown-linux-gnu
 
     runs-on: ${{ matrix.platform.container }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
 
       - name: Setup mold as the linker
         uses: rui314/setup-mold@main
