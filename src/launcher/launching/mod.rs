@@ -197,7 +197,7 @@ impl SimpleInstance {
         }
     }
 
-    async fn get_java<'a>(&self, app: Arc<YetaLauncher>, client: &Client) -> Result<JavaDetails, String> {
+    async fn get_java(&self, app: Arc<YetaLauncher>, client: &Client) -> Result<JavaDetails, String> {
         let version = MCVersionDetails::from_id(&self.mc_version, client).await.ok_or_else(
             || "Could not get version details for this Minecraft version!".to_string()
         )?;

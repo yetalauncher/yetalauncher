@@ -50,4 +50,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
             name: yetalauncher-${{ matrix.platform.name }}
-            path: "target/release/yetalauncher*"
+            path: target/release/yetalauncher**

@@ -1,4 +1,4 @@
-use std::{io::{Cursor, Write}, os::unix::fs::MetadataExt, path::PathBuf};
+use std::{io::{Cursor, Write}, path::PathBuf};
 
 use log::*;
 use reqwest::Client;
@@ -174,7 +174,7 @@ impl Download {
                 if !meta.is_file() {
                     Err(DownloadErr::NotAFile)
                 } else if 
-                    self.size.as_ref().map_or(true, |size| meta.size() == *size as u64)
+                    self.size.as_ref().map_or(true, |size| meta.len() == *size as u64)
                     &&
                     self.checksum_matches().await
                     &&
