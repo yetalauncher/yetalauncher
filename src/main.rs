@@ -126,11 +126,17 @@ impl YetaLauncher {
             }));
         }));
 
-        settings.on_update_instance_size(clone!([{ window.as_weak() } as window, app], move |new_size| {
-            let mut settings = app.settings.write().unwrap();
-            settings.instance_size = new_size as u16;
-            settings.set();
-            app.sync_settings(window.clone());
+        settings.on_update_instance_size(clone!([{ window.as_weak() } as window, app, rt], move |new_size| {
+            rt.spawn(clone!([app, window], async move {
+                {
+                    let mut settings = app.settings.write().unwrap();
+                    settings.instance_size = new_size as u16;
+                    settings.set();
+                }
+                invoke_from_event_loop(move || {
+                    app.sync_settings(window.clone());
+                }).unwrap();
+            }));
         }));
 
         settings.on_add_java_setting(clone!([{ window.as_weak() } as window, app], move || {
