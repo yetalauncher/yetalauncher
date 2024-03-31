@@ -19,6 +19,7 @@ export component Notification inherits Rectangle {
     text := Text {
         x: 10px; y: 8px; z: 3;
         font-size: 18px;
+        font-weight: 500;
         color: Palette.text;
         text: notif.max-progress == 0 ? notif.text : notif.text + " [" + notif.progress + "/" + notif.max-progress + "]";
     }

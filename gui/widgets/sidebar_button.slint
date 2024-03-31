@@ -15,14 +15,13 @@ export component SidebarButton inherits VerticalLayout {
         background: area.has-hover ? Palette.primary : Palette.bg-secondary;
         height: 47px;
         border-radius: 6px;
+        clip: true;
 
         area := TouchArea {
             mouse-cursor: pointer;
             clicked => { App.page = page }
         }
         HorizontalBox {
-            x: -2px;
-
             Image {
                 y: -2px;
                 source: icon;
@@ -35,7 +34,6 @@ export component SidebarButton inherits VerticalLayout {
                 color: Palette.text;
                 font-weight: 600;
                 font-size: 20px;
-                overflow: TextOverflow.clip;
             }
         }
     
