@@ -43,7 +43,7 @@ strip = true # Remove debug symbols
 
 [features]
 default = ["use-qt"] # for fast dev compilation; Qt must be installed
-release = ["use-qt", "backend-winit", "use-skia"] # works everywhere
+release = ["backend-winit", "use-skia"] # works everywhere
 
 backend-qt = ["slint/backend-qt"]
 backend-winit = ["slint/backend-winit"]

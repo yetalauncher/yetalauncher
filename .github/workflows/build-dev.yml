@@ -11,18 +11,22 @@ jobs:
           - name: windows-x86_64
             container: windows-latest
             target: x86_64-pc-windows-msvc
+            args: "--no-default-features --features use-skia"
 
           - name: macOS-x86_64
             container: macOS-latest
             target: x86_64-apple-darwin
+            args: "--no-default-features --features use-skia"
 
           - name: macOS-aarch64
             container: macOS-latest
             target: aarch64-apple-darwin
+            args: "--no-default-features --features use-skia"
           
           - name: linux-x86_84
             container: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            args: ""
 
     runs-on: ${{ matrix.platform.container }}
 
@@ -37,7 +41,7 @@ jobs:
         uses: jurplel/install-qt-action@v3
         with:
           cache: true
-        if: ${{ !contains(matrix.platform.target, 'aarch') }}
+        if: ${{ !contains(matrix.platform.args, 'no-default-features') }}
 
       - name: Setup mold as the linker
         uses: rui314/setup-mold@main
@@ -51,7 +55,7 @@ jobs:
         with:
           command: build
           target: ${{ matrix.platform.target }}
-          args: "--release --features release"  # Build with the release profile and enable the winit/skia backend/renderer in addition to the default Qt
+          args: "--release ${{ matrix.platform.args }}"  # Build with the release profile and enable the backends to use for the platform
           strip: false
 
       - name: Mark binary as executable
