@@ -37,7 +37,7 @@ jobs:
         uses: jurplel/install-qt-action@v3
         with:
           cache: true
-        if: ! contains(matrix.platform.target, 'aarch')
+        if: !contains(matrix.platform.target, 'aarch')
 
       - name: Setup mold as the linker
         uses: rui314/setup-mold@main
