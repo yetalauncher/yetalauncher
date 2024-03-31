@@ -35,9 +35,13 @@ jobs:
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
+        with:
+          cache: true
+        if: ! contains(matrix.platform.target, 'aarch')
 
       - name: Setup mold as the linker
         uses: rui314/setup-mold@main
+        if: contains(matrix.platform.target, 'linux')
 
       - name: Setup Rust build cache
         uses: Swatinem/rust-cache@v2
@@ -47,12 +51,12 @@ jobs:
         with:
           command: build
           target: ${{ matrix.platform.target }}
-          args: "--release"
+          args: "--release --features release"  # Build with the release profile and enable the winit/skia backend/renderer in addition to the default Qt
           strip: false
 
       - name: Mark binary as executable
         run: chmod +x target/${{ matrix.platform.target }}/release/yetalauncher
-        if: contains(matrix.platform.name, 'linux')
+        if: contains(matrix.platform.target, 'linux')
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

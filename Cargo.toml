@@ -22,7 +22,7 @@ serde_ini = "0.2.0"
 serde_json = "1.0.114"
 sha1_smol = "1.0.0"
 simple_logger = "4.3.3"
-slint = { version = "1.5.1", default-features = false, features = ["std", "backend-qt", "accessibility", "compat-1-2"] }
+slint = { version = "1.5.1", default-features = false, features = ["std", "accessibility", "compat-1-2", "log"] }
 thiserror = "1.0.57"
 tokio = { version = "1.36.0", features = ["full"] }
 tokio-util = "0.7.10"
@@ -39,3 +39,16 @@ codegen-units = 1 # Compile crates one after another so the compiler can optimiz
 lto = true # Link time optimizations
 opt-level = 3 # Optimize the most
 strip = true # Remove debug symbols
+
+
+[features]
+default = ["use-qt"] # for fast dev compilation; Qt must be installed
+release = ["use-qt", "backend-winit", "use-skia"] # works everywhere
+
+backend-qt = ["slint/backend-qt"]
+backend-winit = ["slint/backend-winit"]
+
+use-qt = ["backend-qt"] # simple and good, but requires system Qt installation and has no hardware acceleartion
+use-skia = ["slint/renderer-skia"] # has a lot of dependencies, but also has hardware acceleration
+use-femtovg = ["slint/renderer-femtovg"] # looks bad
+use-software = ["slint/renderer-software"] # doesn't work
