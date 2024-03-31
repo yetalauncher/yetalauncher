@@ -23,10 +23,15 @@ jobs:
             target: aarch64-apple-darwin
             args: "--no-default-features --features use-skia"
           
-          - name: linux-x86_84
+          - name: linux-x86_84-qt
             container: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             args: ""
+
+          - name: linux-x86_84-skia
+            container: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            args: "--no-default-features --features use-skia"
 
     runs-on: ${{ matrix.platform.container }}
 
