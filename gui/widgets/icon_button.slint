@@ -9,6 +9,7 @@ export component IconButton inherits VerticalLayout {
     in property <brush> color: Palette.primary;
     out property <bool> has-hover <=> area.has-hover;
     callback clicked <=> area.clicked;
+    callback double-clicked <=> area.double-clicked;
 
     padding-left: 4px;
     padding-right: 4px;

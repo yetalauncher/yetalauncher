@@ -54,8 +54,8 @@ export component AccountTile inherits VerticalLayout {
             color: #c22626;
             icon: @image-url("../../resources/tabler-icons/trash-x.svg");
 
-            clicked => {
-                // Settings.remove-account(account.index); TODO until confirmation window implementation
+            double-clicked => {
+                Settings.remove-account(account.index) // TODO: implement proper confirmation window
             }
         }
 

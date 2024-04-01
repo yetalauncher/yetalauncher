@@ -311,16 +311,28 @@ impl YetaLauncher {
             })
         }));
 
-        settings.on_set_selected_account(clone!([app, { window.as_weak() } as window], move |index| {
-            let mut accounts = app.accounts.write().unwrap();
-            accounts.set_selected_index(index as u32);
-            app.sync_accounts(window.clone());
+        settings.on_set_selected_account(clone!([app, { window.as_weak() } as window, rt], move |index| {
+            rt.spawn(clone!([app, window], async move {
+                {
+                    let mut accounts = app.accounts.write().unwrap();
+                    accounts.set_selected_index(index as u32);
+                }
+                invoke_from_event_loop(move || {
+                    app.sync_accounts(window.clone());
+                }).unwrap();
+            }));
         }));
 
-        settings.on_remove_account(clone!([app, { window.as_weak() } as window], move |index| {
-            let mut accounts = app.accounts.write().unwrap();
-            accounts.remove_account(index as usize);
-            app.sync_accounts(window.clone());
+        settings.on_remove_account(clone!([app, { window.as_weak() } as window, rt], move |index| {
+            rt.spawn(clone!([app, window], async move {
+                {
+                    let mut accounts = app.accounts.write().unwrap();
+                    accounts.remove_account(index as usize);
+                }
+                invoke_from_event_loop(move || {
+                    app.sync_accounts(window.clone());
+                }).unwrap();
+            }));
         }));
 
         settings.on_add_account(clone!([rt, app, { window.as_weak() } as window, notifier], move || {
