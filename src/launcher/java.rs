@@ -110,7 +110,7 @@ impl Default for JavaDetails {
             minecraft_versions: JavaMCRange { min: None, max: None },
             xmx: 4096,
             xms: 2048,
-            args: String::from(""),
+            args: String::from("-XX:+UseG1GC"),
         }
     }
 }
