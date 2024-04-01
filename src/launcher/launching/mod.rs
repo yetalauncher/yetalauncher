@@ -21,7 +21,7 @@ struct Args {
 
 
 impl SimpleInstance {
-    pub async fn launch(app: Arc<YetaLauncher>, instance_id: i32, mut notifier: Notifier) -> Result<(), String> {
+    pub async fn launch(app: Arc<YetaLauncher>, instance_id: i32, notifier: &mut Notifier) -> Result<(), String> {
         let instance = app.instances.read().unwrap().as_ref().map(|instances| {
             instances.iter().find(|&inst| inst.id == instance_id as u32).unwrap().clone()
         }).unwrap();
@@ -44,10 +44,8 @@ impl SimpleInstance {
 
 
         let client = Client::new();
-        let java = instance.get_java(app.clone(), &client).await.map_err(
-            |err| { notifier.send_error(&err); err }
-        )?;
-        let args = instance.get_arguments(&java, app.clone(), &client, &mut notifier).await?;
+        let java = instance.get_java(app.clone(), &client).await?;
+        let args = instance.get_arguments(&java, app.clone(), &client, notifier).await?;
         let additional_args = java.get_args();
     
         debug!("Args: {:#?}\nCustom Args: {}", args, additional_args);

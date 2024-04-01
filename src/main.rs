@@ -275,7 +275,10 @@ impl YetaLauncher {
 
         settings.on_launch_instance(clone!([app, rt, notifier], move |instance_id| {
             rt.spawn(clone!([app, notifier], async move {
-                SimpleInstance::launch(app, instance_id, notifier.make_new()).await.unwrap();
+                let mut notifier = notifier.make_new();
+                SimpleInstance::launch(app, instance_id, &mut notifier).await.unwrap_or_else(|err| {
+                    notifier.send_error(&format!("Failed to launch instance: {err}"));
+                });
             }));
         }));
 
