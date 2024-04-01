@@ -1,0 +1,11 @@
+import { SlSimpleInstance } from "../structs.slint";
+import { App } from "../globals.slint";
+
+
+export component InstancePage inherits VerticalLayout {
+    private property instance <=> App.current-instance;
+
+    Text {
+        text: instance.name;
+    }
+}

@@ -9,6 +9,7 @@ import { CreatePage } from "pages/create.slint";
 import { NotifContainer } from "widgets/notif_container.slint";
 
 import "../resources/fonts/Nunito-Medium.ttf";
+import { InstancePage } from "pages/instance.slint";
 
 export component MainWindow inherits Window {
     in-out property <Pages> page <=> App.page;
@@ -30,6 +31,7 @@ export component MainWindow inherits Window {
         if page == Pages.Create: CreatePage {}
         if page == Pages.Accounts: AccountsPage {}
         if page == Pages.Settings: SettingsPage {}
+        if page == Pages.Instance: InstancePage {}
     }
     NotifContainer { z: 50; parent_height: root.height; }
 }

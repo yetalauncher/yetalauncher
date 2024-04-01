@@ -2,15 +2,17 @@ import { Pages } from "enums.slint";
 import { SlSettings, SlMCVersionDetails, SlSimpleInstance, SlAccounts, SlMCAccount, SlNotif } from "structs.slint";
 
 export global App {
-    in-out property <Pages> page;
+    in-out property <Pages> page: Home;
     in-out property <string> title:
         page == Pages.Home ? "Home - YetaLauncher" :
         page == Pages.Create ? "Create - YetaLauncher" :
         page == Pages.Accounts ? "Accounts - YetaLauncher" :
         page == Pages.Settings ? "Settings - YetaLauncher" :
+        page == Pages.Instance ? "'" + current-instance.name + "' - YetaLauncher" :
         "YetaLauncher";
 
     in-out property <[SlNotif]> notifications;
+    in property <SlSimpleInstance> current-instance;
 }
 
 export global Settings {
