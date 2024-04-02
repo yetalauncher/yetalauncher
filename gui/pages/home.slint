@@ -18,7 +18,7 @@ export component HomePage inherits VerticalLayout {
         }
 
         IconButton {
-            y: 3px; x: root.width - 150px;
+            x: self.width - 47px; y: 3px;
             icon: @image-url("../../resources/tabler-icons/refresh.svg");
             
             clicked => {
@@ -30,7 +30,7 @@ export component HomePage inherits VerticalLayout {
         }
 
         CustomSlider {
-            y: 17px; x: root.width - 280px;
+            y: 19px; x: parent.width - 275px;
             width: 120px;
             range: { min: 8, max: 24};
             value: Settings.settings.instance-size;

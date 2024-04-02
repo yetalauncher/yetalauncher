@@ -1,5 +1,6 @@
 use slint::{ModelRc, VecModel};
 
+#[derive(Debug)]
 pub enum SlintOption<T> {
     None,
     Some(T)

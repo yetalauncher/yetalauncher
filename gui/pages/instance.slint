@@ -1,11 +1,50 @@
 import { SlSimpleInstance } from "../structs.slint";
-import { App } from "../globals.slint";
+import { App, Settings, Palette } from "../globals.slint";
+import { Topbar } from "../widgets/topbar.slint";
+import { IconButton } from "../widgets/icon_button.slint";
 
 
 export component InstancePage inherits VerticalLayout {
     private property instance <=> App.current-instance;
 
-    Text {
+    Topbar {
         text: instance.name;
+
+        IconButton {
+            y: 3px; x: self.width - 108px;
+            text: "Launch";
+
+            icon: @image-url("../../resources/tabler-icons/caret-right.svg");
+
+            clicked => {
+                Settings.launch-instance(instance.id);
+            }
+        }
+    }
+
+    content := VerticalLayout {
+        padding: 10px;
+
+        Rectangle {
+            border-radius: 8px;
+            background: Palette.bg-secondary;
+            height: 200px;
+
+            image := Image {
+                x: 8px; y: 8px;
+                height: parent.height - self.y * 2;
+                source: instance.icon-path;
+            }
+
+            VerticalLayout {
+                x: image.width + image.x * 2; y: 8px;
+
+                Text {
+                    private property <string> last-played: instance.last-played.length == 1 ? instance.last-played[0] : "Never";
+                    
+                    text: "Last played: " + last-played;
+                }
+            }
+        }
     }
 }

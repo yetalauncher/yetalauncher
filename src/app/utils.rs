@@ -1,5 +1,6 @@
-use std::{io::Cursor, path::PathBuf};
+use std::{fmt::Write, io::Cursor, path::PathBuf};
 
+use chrono::TimeDelta;
 use log::*;
 use reqwest::Client;
 use tokio::{fs::{self, create_dir_all, File}, io};
@@ -97,6 +98,34 @@ pub async fn create_dir_parents(path: &PathBuf) {
     if let Some(p) = path.parent() {
         fs::create_dir_all(p).await.expect(&format!("Failed to create parent directories {p:?}"))
     }
+}
+
+pub fn format_time_delta(delta: TimeDelta) -> String {
+    let days = delta.num_days();
+    let mut hours = delta.num_hours();
+    let mut mins = delta.num_minutes();
+
+    let mut output = String::new();
+
+    mins -= 60 * hours;
+    hours -= 24 * days;
+
+    if days > 0 {
+        write!(output, "{days}d").ok();
+    }
+    if hours > 0 {
+        if !output.is_empty() { output.push(' '); }
+        write!(output, "{hours}h").ok();
+    }
+    if mins > 0 {
+        if !output.is_empty() { output.push(' '); }
+        write!(output, "{mins}min").ok();
+    }
+    if output.is_empty() {
+        output = "< 1min".to_string();
+    }
+
+    output
 }
 
 

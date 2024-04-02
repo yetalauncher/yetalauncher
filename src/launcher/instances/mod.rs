@@ -7,7 +7,7 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use log::{*};
 use serde::{Deserialize, Serialize};
 
-use crate::{app::{notifier::Notifier, slint_utils::SlintOption}, SlInstanceType, SlSimpleInstance, YetaLauncher};
+use crate::{app::{notifier::Notifier, slint_utils::SlintOption, utils::format_time_delta}, SlInstanceType, SlSimpleInstance, YetaLauncher};
 
 use self::{errors::InstanceGatherError, multimc::*, curseforge::*};
 
@@ -82,7 +82,7 @@ pub async fn get_instances(app: Arc<YetaLauncher>, notifier: Notifier) -> IResul
     while let Some(Ok(opt)) = tasks.join_next().await {
         if let Some(result) = opt {
             let instance = result?;
-            debug!("{:?} - {} | Icon: {:?}", &instance.instance_type, &instance.name, &instance.icon_path);
+            debug!("{:?} - {} | Last played: {:?}", &instance.instance_type, &instance.name, &instance.last_played);
             instances.push(instance);
         }
     }
@@ -202,7 +202,9 @@ impl SimpleInstance {
             id: (self.id as i32).into(),
             instance_path: self.instance_path.to_string_lossy().to_string().into(),
             instance_type: self.instance_type.to_slint(),
-            last_played: SlintOption::from(self.last_played.map(|time| time.to_string())).into(),
+            last_played: SlintOption::from(self.last_played.map(
+                |time| format!("{} ({} ago)", time.format("%d/%m/%Y, %H:%M"), format_time_delta(Utc::now() - time))
+            )).into(),
             mc_version: self.mc_version.to_string().into(),
             minecraft_path: self.minecraft_path.to_string_lossy().to_string().into(),
             modloader: self.modloader.name.to_string().into(),

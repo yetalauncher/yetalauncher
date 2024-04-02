@@ -20,6 +20,7 @@ export component Topbar inherits Rectangle {
 
     Rectangle {
         x: title.x + title.width;
+        width: root.width - self.x;
 
         @children
     }
