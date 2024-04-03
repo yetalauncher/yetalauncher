@@ -16,6 +16,9 @@ pub struct MMCConfig {
     pub name: String,
     #[serde(rename = "lastLaunchTime")]
     pub last_played: Option<i64>,
+    #[serde(rename = "lastTimePlayed")]
+    pub last_played_for: Option<i64>,
+    pub total_time_played: Option<i64>,
     pub icon_key: Option<String>
 }
 
@@ -85,7 +88,8 @@ impl MMCPack {
 // Handling our metadata ("yamcl-data.json" file)
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MMCMetadata {
-    pub instance_id: u32
+    pub instance_id: u32,
+    pub play_count: Option<i32>
 }
 
 impl MMCMetadata {
@@ -114,6 +118,7 @@ impl MMCMetadata {
 
         let meta = MMCMetadata {
             instance_id: fastrand::u32(..),
+            play_count: None
         };
 
         fs::write(&path, serde_json::to_string_pretty(&meta).unwrap(/* this cannot fail */)).await.map_err(

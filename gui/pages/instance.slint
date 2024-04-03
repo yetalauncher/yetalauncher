@@ -41,8 +41,19 @@ export component InstancePage inherits VerticalLayout {
 
                 Text {
                     private property <string> last-played: instance.last-played.length == 1 ? instance.last-played[0] : "Never";
-                    
                     text: "Last played: " + last-played;
+                }
+                Text {
+                    private property <string> last-played-for: instance.last-played-for.length == 1 ? instance.last-played-for[0] : "Unknown";
+                    text: "Last played for: " + last-played-for;
+                }
+                Text {
+                    private property <string> total-time-played: instance.total-time-played.length == 1 ? instance.total-time-played[0] : "Unknown";
+                    text: "Total time played: " + total-time-played;
+                }
+                Text {
+                    private property <string> play-count: instance.play-count.length == 1 ? instance.play-count[0] : "Unknown";
+                    text: "Number of times played: " + play-count;
                 }
             }
         }

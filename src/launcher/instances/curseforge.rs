@@ -18,6 +18,8 @@ pub struct CFInstance {
     pub last_played: String,
     pub name: String,
     pub game_version: String,
+    #[serde(default)]
+    pub played_count: i32,
     pub base_mod_loader: Option<CFBaseLoader>,
     pub installed_modpack: Option<CFInstalledPack>
 }
@@ -101,7 +103,9 @@ impl CFInstance {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CFMetadata {
     pub instance_id: u32,
-    pub saved_icon: Option<String>
+    pub saved_icon: Option<String>,
+    pub last_played_for: Option<i64>,
+    pub total_time_played: Option<i64>
 }
 
 impl CFMetadata {
@@ -142,6 +146,8 @@ impl CFMetadata {
 
         let meta = CFMetadata {
             instance_id: fastrand::u32(..),
+            last_played_for: None,
+            total_time_played: None,
             saved_icon: match CFInstance::download_icon(instance_path, app).await {
                 Ok(icon) => icon,
                 Err(err) => {
