@@ -1,5 +1,5 @@
 import { SlSimpleInstance } from "../structs.slint";
-import { App, Palette, Settings } from "../globals.slint";
+import { App, Palette, Instances } from "../globals.slint";
 import { Pages } from "../enums.slint";
 
 export component InstanceTile inherits VerticalLayout {
@@ -78,7 +78,7 @@ export component InstanceTile inherits VerticalLayout {
                 z: 5;
                 mouse-cursor: pointer;
                 clicked => {
-                    Settings.launch-instance(instance.id)
+                    Instances.launch-instance(instance.id)
                 }
             }
 

@@ -6,8 +6,8 @@
 
 use std::{sync::{Arc, RwLock}, time::Instant};
 
-use app::notifier::InternalNotifier;
-use launcher::{authentication::auth_structs::Accounts, instances::SimpleInstance};
+use app::{settings::AppSettings, slint_utils::SlintOption, notifier::InternalNotifier};
+use launcher::{instances::SimpleInstance, authentication::{add_account, auth_structs}, instances, java::{get_java_version, JavaDetails}, launching::mc_structs::{MCSimpleVersion, MCVersionDetails, MCVersionList}};
 use log::*;
 use reqwest::Client;
 use rfd::AsyncFileDialog;
@@ -17,7 +17,6 @@ use clone_macro::clone;
 use tokio::{runtime::Runtime, sync::mpsc};
 use tokio_util::sync::CancellationToken;
 
-use crate::{app::{settings::AppSettings, slint_utils::SlintOption}, launcher::{authentication::add_account, instances, java::{get_java_version, JavaDetails}, launching::mc_structs::{MCSimpleVersion, MCVersionDetails, MCVersionList}}};
 
 slint::include_modules!();
 pub use slint_generatedMainWindow::*;
@@ -42,7 +41,7 @@ fn main() {
 #[derive(Debug)]
 pub struct YetaLauncher {
     settings: RwLock<AppSettings>,
-    accounts: RwLock<Accounts>,
+    accounts: RwLock<auth_structs::Accounts>,
     instances: RwLock<Option<Vec<SimpleInstance>>>
 }
 
@@ -64,15 +63,23 @@ impl YetaLauncher {
         let runtime = Runtime::new().unwrap();
         let rt = runtime.handle().clone();
 
+        // Setup Notifiers
         let mut int_notifier = InternalNotifier::new();
         let notifier = int_notifier.make_notifier();
+
+        // For clean exiting
         let cancel_token = CancellationToken::new();
 
+        // Shorthands for globals
         let settings = window.global::<Settings>();
+        let accounts = window.global::<Accounts>();
+        let instances = window.global::<Instances>();
+        let minecraft = window.global::<Minecraft>();
 
         settings.set_settings(app.settings.read().unwrap().to_slint());
 
 
+        // Setup frontend communication for the Notifier
         rt.spawn(clone!([cancel_token, { window.as_weak() } as window], async move {
             int_notifier.subscribe(cancel_token, clone!([window], move |notifications| {
                 let slint_notifs: Vec<SlNotif> = notifications.iter().map(
@@ -92,7 +99,7 @@ impl YetaLauncher {
         }));
 
 
-
+        // Settings related callbacks
         settings.on_update_instance_path(clone!([{ window.as_weak() } as window, app, rt], move || {
             let _guard = rt.enter();
             rt.spawn(clone!([window, app], async move {
@@ -180,9 +187,11 @@ impl YetaLauncher {
                 Err(_) => SlintOption::<String>::None.into()
             }
         }));
+        // End Settings related callbacks
 
 
-        settings.on_get_mc_versions(clone!([{ window.as_weak() } as window, rt], move || {
+        // Minecraft related callbacks
+        minecraft.on_get_mc_versions(clone!([{ window.as_weak() } as window, rt], move || {
             let _guard = rt.enter();
             rt.spawn(clone!([window], async move {
                 let client = Client::new();
@@ -200,13 +209,16 @@ impl YetaLauncher {
                             )
                         );
 
-                        window.unwrap().global::<Settings>().set_version_list(slint_list);
+                        window.unwrap().global::<Minecraft>().set_version_list(slint_list);
                     }).unwrap();
                 }
             }));
         }));
+        // End Minecraft related callbacks
 
-        settings.on_get_instances(clone!([{ window.as_weak() } as window, app, rt, notifier], move |force| {
+
+        // Instance related callbacks
+        instances.on_get_instances(clone!([{ window.as_weak() } as window, app, rt, notifier], move |force| {
             rt.spawn(clone!([window, app, notifier, rt], async move {
 
                 if app.instances.read().unwrap().is_none() || force {
@@ -238,16 +250,14 @@ impl YetaLauncher {
                             None => ModelRc::default()
                         };
         
-                        window.unwrap().global::<Settings>().set_instances(slint_list);
-                        window.unwrap().global::<Settings>().set_is_loading_instances(false);
+                        window.unwrap().global::<Instances>().set_instances(slint_list);
+                        window.unwrap().global::<Instances>().set_is_loading_instances(false);
                     })).unwrap();
                 })).unwrap();
-
             }));
-
         }));
 
-        settings.on_grid_instances(clone!([], move |width, instances, instance_size| {
+        instances.on_grid_instances(clone!([], move |width, instances, instance_size| {
             ModelRc::new({
                 let mut result = Vec::new();
                 let mut vec = Vec::new();
@@ -273,7 +283,7 @@ impl YetaLauncher {
             })
         }));
 
-        settings.on_launch_instance(clone!([app, rt, notifier], move |instance_id| {
+        instances.on_launch_instance(clone!([app, rt, notifier], move |instance_id| {
             rt.spawn(clone!([app, notifier], async move {
                 let mut notifier = notifier.make_new();
                 SimpleInstance::launch(app, instance_id, &mut notifier).await.unwrap_or_else(|err| {
@@ -281,14 +291,17 @@ impl YetaLauncher {
                 });
             }));
         }));
+        // End Instance related callbacks
 
-        settings.on_get_accounts(clone!([{ window.as_weak() } as window, app], move || {
-            window.unwrap().global::<Settings>().set_accounts(
+
+        // Account related callbacks
+        accounts.on_get_accounts(clone!([{ window.as_weak() } as window, app], move || {
+            window.unwrap().global::<Accounts>().set_accounts(
                 app.accounts.read().unwrap().to_slint()
             );
         }));
 
-        settings.on_grid_accounts(clone!([app], move |width, accounts| {
+        accounts.on_grid_accounts(clone!([app], move |width, accounts| {
             ModelRc::new({
                 let mut result = Vec::new();
                 let mut vec = Vec::new();
@@ -314,7 +327,7 @@ impl YetaLauncher {
             })
         }));
 
-        settings.on_set_selected_account(clone!([app, { window.as_weak() } as window, rt], move |index| {
+        accounts.on_set_selected_account(clone!([app, { window.as_weak() } as window, rt], move |index| {
             rt.spawn(clone!([app, window], async move {
                 {
                     let mut accounts = app.accounts.write().unwrap();
@@ -326,7 +339,7 @@ impl YetaLauncher {
             }));
         }));
 
-        settings.on_remove_account(clone!([app, { window.as_weak() } as window, rt], move |index| {
+        accounts.on_remove_account(clone!([app, { window.as_weak() } as window, rt], move |index| {
             rt.spawn(clone!([app, window], async move {
                 {
                     let mut accounts = app.accounts.write().unwrap();
@@ -338,7 +351,7 @@ impl YetaLauncher {
             }));
         }));
 
-        settings.on_add_account(clone!([rt, app, { window.as_weak() } as window, notifier], move || {
+        accounts.on_add_account(clone!([rt, app, { window.as_weak() } as window, notifier], move || {
             let _guard = rt.enter();
             rt.spawn(clone!([rt, app, window, notifier], async move {
                 let (sender, mut receiver) = mpsc::unbounded_channel();
@@ -352,6 +365,7 @@ impl YetaLauncher {
                 }
             }));
         }));
+        // End Account related callbacks
 
 
         info!("Running (took {:?})", Instant::now() - time);
@@ -365,7 +379,7 @@ impl YetaLauncher {
     fn new() -> Self {
         Self {
             settings: RwLock::new(AppSettings::get()),
-            accounts: RwLock::new(Accounts::get()),
+            accounts: RwLock::new(auth_structs::Accounts::get()),
             instances: RwLock::new(None)
         }
     }
@@ -375,6 +389,6 @@ impl YetaLauncher {
     }
 
     fn sync_accounts(&self, window: Weak<MainWindow>) {
-        window.unwrap().global::<Settings>().set_accounts(self.accounts.read().unwrap().to_slint());
+        window.unwrap().global::<Accounts>().set_accounts(self.accounts.read().unwrap().to_slint());
     }
 }

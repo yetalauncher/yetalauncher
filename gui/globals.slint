@@ -17,10 +17,6 @@ export global App {
 
 export global Settings {
     in-out property <SlSettings> settings;
-    in-out property <[SlMCVersionDetails]> version_list;
-    in-out property <[SlSimpleInstance]> instances;
-    in-out property <SlAccounts> accounts;
-    in-out property <bool> is-loading-instances;
 
     callback update-instance-path();
     callback update-icon-path();
@@ -29,17 +25,31 @@ export global Settings {
     callback save-settings();
     callback update-java-path() -> [string];
     callback test-java(string, string) -> [string];
+}
 
-    callback get-mc-versions();
-    callback get-instances(bool);
-    pure callback grid-instances(length, [SlSimpleInstance], int) -> [[SlSimpleInstance]];
-    callback launch-instance(int);
-
+export global Accounts {
+    in-out property <SlAccounts> accounts;
+    
     callback get-accounts();
     pure callback grid-accounts(length, [SlMCAccount]) -> [[SlMCAccount]];
     callback set-selected-account(int);
     callback remove-account(int);
     callback add-account();
+}
+
+export global Instances {
+    in-out property <[SlSimpleInstance]> instances;
+    in-out property <bool> is-loading-instances;
+    
+    callback get-instances(bool);
+    pure callback grid-instances(length, [SlSimpleInstance], int) -> [[SlSimpleInstance]];
+    callback launch-instance(int);
+}
+
+export global Minecraft {
+    in-out property <[SlMCVersionDetails]> version_list;
+
+    callback get-mc-versions();
 }
 
 export global Palette {

@@ -1,11 +1,11 @@
 import { SlMCAccount } from "../structs.slint";
-import { App, Palette, Settings } from "../globals.slint";
+import { App, Palette, Accounts } from "../globals.slint";
 import { IconButton } from "icon_button.slint";
 
 export component AccountTile inherits VerticalLayout {
     padding: 4px;
     in-out property <SlMCAccount> account;
-    private property <bool> is-selected: Settings.accounts.selected-index.length == 1 ? Settings.accounts.selected-index[0] == account.index : false;
+    private property <bool> is-selected: Accounts.accounts.selected-index.length == 1 ? Accounts.accounts.selected-index[0] == account.index : false;
 
     container := Rectangle {
         clip: true;
@@ -44,7 +44,7 @@ export component AccountTile inherits VerticalLayout {
             text: "Select";
 
             clicked => {
-                Settings.set-selected-account(account.index);
+                Accounts.set-selected-account(account.index);
             }
         }
 
@@ -55,7 +55,7 @@ export component AccountTile inherits VerticalLayout {
             icon: @image-url("../../resources/tabler-icons/trash-x.svg");
 
             double-clicked => {
-                Settings.remove-account(account.index) // TODO: implement proper confirmation window
+                Accounts.remove-account(account.index) // TODO: implement proper confirmation window
             }
         }
 

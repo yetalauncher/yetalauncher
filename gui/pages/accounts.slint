@@ -1,4 +1,4 @@
-import { App, Settings } from "../globals.slint";
+import { App, Settings, Accounts } from "../globals.slint";
 import { ListView } from "std-widgets.slint";
 import { AccountTile } from "../widgets/account_tile.slint";
 import { IconButton } from "../widgets/icon_button.slint";
@@ -14,12 +14,12 @@ export component AccountsPage inherits VerticalLayout {
             icon: @image-url("../../resources/tabler-icons/plus.svg");
             text: "Add Account";
     
-            clicked => { Settings.add-account(); }
+            clicked => { Accounts.add-account(); }
         }
     }
 
-    if Settings.accounts.accounts.length > 0: view := ListView {
-        for accounts_row in Settings.grid-accounts(view.visible-width, Settings.accounts.accounts): HorizontalLayout {
+    if Accounts.accounts.accounts.length > 0: view := ListView {
+        for accounts_row in Accounts.grid-accounts(view.visible-width, Accounts.accounts.accounts): HorizontalLayout {
             for account in accounts-row: AccountTile {
                 width: view.visible-width / ceil(view.visible-width / ((30 - Settings.settings.instance_size) * 15px));
                 account: account;
@@ -29,8 +29,8 @@ export component AccountsPage inherits VerticalLayout {
 
     HorizontalLayout {
         init => {
-            if Settings.accounts.accounts.length == 0 {
-                Settings.get-accounts();
+            if Accounts.accounts.accounts.length == 0 {
+                Accounts.get-accounts();
             }
         }
     }

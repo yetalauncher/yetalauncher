@@ -1,4 +1,4 @@
-import { App, Settings } from "../globals.slint";
+import { App, Settings, Instances } from "../globals.slint";
 import { ListView } from "std-widgets.slint";
 import { InstanceTile } from "../widgets/instance_tile.slint";
 import { IconButton } from "../widgets/icon_button.slint";
@@ -14,7 +14,7 @@ export component HomePage inherits VerticalLayout {
             x: 3px; y: 13px;
             font-weight: 500;
             font-size: 16px;
-            text: "(" + Settings.instances.length + ")";
+            text: "(" + Instances.instances.length + ")";
         }
 
         IconButton {
@@ -22,9 +22,9 @@ export component HomePage inherits VerticalLayout {
             icon: @image-url("../../resources/tabler-icons/refresh.svg");
             
             clicked => {
-                if !Settings.is-loading-instances {
-                    Settings.get-instances(true);
-                    Settings.is-loading-instances = true;
+                if !Instances.is-loading-instances {
+                    Instances.get-instances(true);
+                    Instances.is-loading-instances = true;
                 }
             }
         }
@@ -39,8 +39,8 @@ export component HomePage inherits VerticalLayout {
         }
     }
 
-    if Settings.instances.length > 0: view := ListView {
-        for instance_row in Settings.grid-instances(view.visible-width, Settings.instances, Settings.settings.instance-size): HorizontalLayout {
+    if Instances.instances.length > 0: view := ListView {
+        for instance_row in Instances.grid-instances(view.visible-width, Instances.instances, Settings.settings.instance-size): HorizontalLayout {
             for instance in instance-row: InstanceTile {
                 width: view.visible-width / ceil(view.visible-width / ((30 - Settings.settings.instance_size) * 15px));
                 instance: instance;
@@ -50,9 +50,9 @@ export component HomePage inherits VerticalLayout {
 
     HorizontalLayout {
         init => {
-            if Settings.instances.length == 0 && !Settings.is-loading-instances {
-                Settings.get-instances(false);
-                Settings.is-loading-instances = true;
+            if Instances.instances.length == 0 && !Instances.is-loading-instances {
+                Instances.get-instances(false);
+                Instances.is-loading-instances = true;
             }
         }
     }

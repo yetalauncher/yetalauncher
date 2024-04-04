@@ -1,5 +1,5 @@
 import { IconButton } from "icon_button.slint";
-import { App, Palette, Settings } from "../globals.slint";
+import { App, Palette, Minecraft } from "../globals.slint";
 import { CheckBox, ListView } from "std-widgets.slint";
 import { SlMCVersionDetails } from "../structs.slint";
 
@@ -9,7 +9,7 @@ export component MinecraftPicker inherits VerticalLayout {
     out property <SlMCVersionDetails> selected;
     private property <bool> expanded;
     private property <bool> has-been-clicked;
-    private property <bool> loaded: Settings.version_list.length > 0;
+    private property <bool> loaded: Minecraft.version_list.length > 0;
     callback select();
 
     button := IconButton {
@@ -20,8 +20,8 @@ export component MinecraftPicker inherits VerticalLayout {
         clicked => {
             popup.show();
             expanded = !expanded;
-            if expanded && !has-been-clicked && Settings.version_list.length == 0 {
-                Settings.get-mc-versions()
+            if expanded && !has-been-clicked && Minecraft.version_list.length == 0 {
+                Minecraft.get-mc-versions()
             }
             has-been-clicked = true;
         }
@@ -79,7 +79,7 @@ export component MinecraftPicker inherits VerticalLayout {
                     border-radius: 4px;
 
                     if loaded: ListView {
-                        for version in Settings.version_list: Rectangle {
+                        for version in Minecraft.version_list: Rectangle {
                             private property <bool> view:
                             (filter-release.checked && version.typ == "release") ||
                             (filter-snapshot.checked && version.typ == "snapshot") ||

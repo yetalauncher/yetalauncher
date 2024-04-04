@@ -1,7 +1,7 @@
 import { HorizontalBox } from "std-widgets.slint";
 import { Sidebar } from "widgets/sidebar.slint";
 import { Pages } from "enums.slint";
-import { App, Settings, Palette } from "globals.slint";
+import { App, Settings, Instances, Accounts, Minecraft, Palette } from "globals.slint";
 import { SettingsPage } from "pages/settings.slint";
 import { HomePage } from "pages/home.slint";
 import { AccountsPage } from "pages/accounts.slint";
@@ -13,7 +13,7 @@ import { InstancePage } from "pages/instance.slint";
 
 export component MainWindow inherits Window {
     in-out property <Pages> page <=> App.page;
-
+    
     title <=> App.title;
     background: Palette.bg-primary;
     padding: 0;
@@ -36,4 +36,4 @@ export component MainWindow inherits Window {
     NotifContainer { z: 50; parent_height: root.height; }
 }
 
-export { App, Settings }
+export { App, Settings, Instances, Accounts, Minecraft }
