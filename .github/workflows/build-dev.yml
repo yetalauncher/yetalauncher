@@ -56,8 +56,8 @@ jobs:
         run: sudo apt install -y libwayland-dev wayland-protocols
         if: contains(matrix.platform.target, 'linux')
 
-      - name: Fix pkg-config
-        run: export PKG_CONFIG_PATH=/usr/lib/
+      - name: Install font stuff
+        run: sudo apt install -y libfontconfig-dev libfreetype-dev
         if: contains(matrix.platform.target, 'linux')
 
       - name: Setup Rust build cache
