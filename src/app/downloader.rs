@@ -127,7 +127,7 @@ impl Download {
             if let Some(parent_path) = self.path.parent() {
                 if !parent_path.exists() {
                     fs::create_dir_all(parent_path).await.map_err(
-                        |err| DownloadErr::FileCreate(err)
+                        DownloadErr::FileCreate
                     )?;
                 }
             }
@@ -174,7 +174,7 @@ impl Download {
                 if !meta.is_file() {
                     Err(DownloadErr::NotAFile)
                 } else if 
-                    self.size.as_ref().map_or(true, |size| meta.len() == *size as u64)
+                    self.size.as_ref().is_none_or(|size| meta.len() == *size as u64)
                     &&
                     self.checksum_matches().await
                     &&

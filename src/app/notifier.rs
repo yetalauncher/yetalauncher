@@ -135,7 +135,7 @@ impl InternalNotifier {
         }
     }
 
-    pub async fn subscribe(&mut self, cancel: CancellationToken, on_update: impl Fn(Vec<&Notif>) -> ()) {
+    pub async fn subscribe(&mut self, cancel: CancellationToken, on_update: impl Fn(Vec<&Notif>)) {
         loop {
             tokio::select! {
                 _ = cancel.cancelled() => break,
@@ -217,6 +217,12 @@ impl InternalNotifier {
     }
 }
 
+impl Default for InternalNotifier {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl InternalNotif {
     fn with_typ(self, typ: InternalNotifType) -> Self {
         Self { typ, ..self }
@@ -227,9 +233,9 @@ impl Notif {
     pub fn to_slint(&self) -> SlNotif {
         SlNotif {
             text: self.text.to_string().into(),
-            progress: (self.progress as i32).into(),
-            max_progress: (self.max_progress as i32).into(),
-            in_view: self.in_view.clone(),
+            progress: self.progress as i32,
+            max_progress: self.max_progress as i32,
+            in_view: self.in_view,
             status: self.status.to_slint()
         }
     }

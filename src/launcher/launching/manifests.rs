@@ -1,4 +1,4 @@
-use std::{fs, iter, path::PathBuf, str::FromStr};
+use std::{fs, iter, path::{Path, PathBuf}, str::FromStr};
 
 use chrono::DateTime;
 use log::{*};
@@ -133,7 +133,7 @@ impl MCVersionManifest {
         final_args
     }
 
-    pub async fn get_classpath(&self, natives_path: &PathBuf, client: &Client, notifier: Notifier) -> String {
+    pub async fn get_classpath(&self, natives_path: &Path, client: &Client, notifier: Notifier) -> String {
         let separator = get_classpath_separator();
         let mut downloader = Downloader::new(notifier, 8);
 

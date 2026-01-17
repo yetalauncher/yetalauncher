@@ -31,17 +31,22 @@ pub fn get_java_version(path: String, args: String) -> Result<String, String> {
 
     let java_process = Command::new(path).args(args.split_whitespace()).arg("-version").output();
 
-    if java_process.is_err() {
-        warn!("Java test failed!");
-        Err(String::from("Executing Java Command failed! Is the java path correct?"))
-    } else if java_process.as_ref().unwrap().status.success() {
-        let output = java_process.unwrap().stderr;
-        info!("Java test succeeded:\n{}", String::from_utf8(output.clone()).unwrap());
-        Ok(String::from_utf8(output).unwrap())
-    } else {
-        let output = java_process.unwrap().stderr;
-        warn!("Java command failed:\n{}", String::from_utf8(output.clone()).unwrap());
-        Err(String::from_utf8(output).unwrap())
+    match java_process {
+        Ok(process) => {
+            let output = String::from_utf8(process.stderr).unwrap();
+
+            if process.status.success() {
+                info!("Java test succeeded:\n{output}");
+                Ok(output)
+            } else {
+                warn!("Java command failed:\n{output}");
+                Err(output)
+            }
+        }
+        Err(err) => {
+            warn!("Java test failed: {err}");
+            Err(String::from("Executing Java Command failed! Is the java path correct? Error: {err}"))
+        }
     }
 }
 
@@ -56,8 +61,8 @@ impl JavaDetails {
             label: self.label.to_string().into(),
             path: self.path.to_string().into(),
             version: self.version.to_string().into(),
-            xms: (self.xms as i32).into(),
-            xmx: (self.xmx as i32).into(),
+            xms: self.xms as i32,
+            xmx: self.xmx as i32,
             minecraft_versions: self.minecraft_versions.to_slint()
         }
     }

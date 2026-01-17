@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, fs::File, io::BufReader, path::PathBuf, sync::Arc};
+use std::{cmp::Ordering, fs::File, io::BufReader, path::{Path, PathBuf}, sync::Arc};
 
 use clone_macro::clone;
 use image::RgbaImage;
@@ -114,14 +114,14 @@ pub async fn get_instances(app: Arc<YetaLauncher>, notifier: Notifier) -> IResul
 
 
 impl SimpleInstance {
-    pub async fn get_from_mmc(path: &PathBuf, app: Arc<YetaLauncher>) -> IResult<Self> {
+    pub async fn get_from_mmc(path: &Path, app: Arc<YetaLauncher>) -> IResult<Self> {
         let meta = MMCMetadata::get(path).await?;
         let instance_cfg = MMCConfig::get(path).await?;
         let pack_json = MMCPack::get(path).await?;
 
         Ok(SimpleInstance {
             instance_type: InstanceType::MultiMC,
-            instance_path: path.clone(),
+            instance_path: path.to_path_buf(),
 
             id: meta.instance_id,
             play_count: meta.play_count,
@@ -130,9 +130,9 @@ impl SimpleInstance {
                 Self::load_image(path).await
             } else { None },
             name: instance_cfg.name,
-            last_played: instance_cfg.last_played.and_then(|time| DateTime::from_timestamp_millis(time)),
-            last_played_for: instance_cfg.last_played_for.map(|seconds| TimeDelta::seconds(seconds)),
-            total_time_played: instance_cfg.total_time_played.map(|seconds| TimeDelta::seconds(seconds)),
+            last_played: instance_cfg.last_played.and_then(DateTime::from_timestamp_millis),
+            last_played_for: instance_cfg.last_played_for.map(TimeDelta::seconds),
+            total_time_played: instance_cfg.total_time_played.map(TimeDelta::seconds),
 
             minecraft_path: if path.join(".minecraft").exists() {
                 path.join(".minecraft")
@@ -142,8 +142,8 @@ impl SimpleInstance {
             mc_version: pack_json.components.iter()
                 .find(|&comp| comp.uid == "net.minecraft")
                 .map(|mc| mc.version.clone())
-                .ok_or(InstanceGatherError::MinecraftNotFound(path.clone()))?
-                .ok_or(InstanceGatherError::MinecraftNotFound(path.clone()))?,
+                .ok_or(InstanceGatherError::MinecraftNotFound(path.to_path_buf()))?
+                .ok_or(InstanceGatherError::MinecraftNotFound(path.to_path_buf()))?,
             modloader: {
                 let loader = pack_json.components.iter().find(|&comp| {
                     ModLoaders::from_uid(&comp.uid).is_some()
@@ -168,14 +168,14 @@ impl SimpleInstance {
         })
     }
 
-    pub async fn get_from_cf(path: &PathBuf, app: Arc<YetaLauncher>) -> IResult<Self> {
+    pub async fn get_from_cf(path: &Path, app: Arc<YetaLauncher>) -> IResult<Self> {
         let meta = CFMetadata::get(path, app).await?;
         let instance_json = CFInstance::get(path).await?;
 
         Ok(SimpleInstance {
             instance_type: InstanceType::CurseForge,
-            minecraft_path: path.clone(),
-            instance_path: path.clone(),
+            minecraft_path: path.to_path_buf(),
+            instance_path: path.to_path_buf(),
 
             icon: if let Some(path) = meta.saved_icon {
                 Self::load_image(path).await
@@ -225,7 +225,7 @@ impl SimpleInstance {
                 )
             } else { Image::load_from_path(PathBuf::from("resources/default_instance.png").as_path()).unwrap_or_default() },
 
-            id: (self.id as i32).into(),
+            id: self.id as i32,
             instance_path: self.instance_path.to_string_lossy().to_string().into(),
             instance_type: self.instance_type.to_slint(),
             last_played: SlintOption::from(self.last_played.map(

@@ -30,6 +30,7 @@ pub struct ForgeVersionManifest {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
+#[allow(clippy::large_enum_variant)]
 pub enum ForgeLibrary {
     Vanilla(MCLibrary),
     Forge(LegacyForgeLibrary)

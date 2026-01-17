@@ -9,7 +9,7 @@ jobs:
       matrix:
         platform:
           - name: windows-x86_64
-            container: windows-latest
+            container: windows-10
             target: x86_64-pc-windows-msvc
             args: "--no-default-features --features release"
 
@@ -50,6 +50,10 @@ jobs:
 
       - name: Setup mold as the linker
         uses: rui314/setup-mold@main
+        if: contains(matrix.platform.target, 'linux')
+
+      - name: Install fontconfig
+        run: sudo apt install -y fontconfig
         if: contains(matrix.platform.target, 'linux')
 
       - name: Setup Rust build cache

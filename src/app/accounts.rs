@@ -13,7 +13,7 @@ use super::{consts::ACCOUNT_FILE_NAME, slint_utils::SlintOption, utils::get_conf
 impl Accounts {
     pub fn to_slint(&self) -> SlAccounts {
         SlAccounts {
-            selected_index: SlintOption::from(self.selected_index.clone().map(|i| i as i32)).into(),
+            selected_index: SlintOption::from(self.selected_index.map(|i| i as i32)).into(),
             accounts: ModelRc::new(VecModel::from(
                 self.accounts.iter()
                 .enumerate()
@@ -68,20 +68,20 @@ impl Accounts {
             app.accounts.write().unwrap().clone()
         };
 
-        accounts.get_active_account(client, force).await.map(Clone::clone)
+        accounts.get_active_account(client, force).await.cloned()
     }
 
     pub async fn get_active_account(&mut self, client: &Client, force: bool) -> Option<&MCAccount> {
         if let Some(index) = self.selected_index {
             let i: usize = index.try_into().unwrap_or(0);
             {
-                let account = self.accounts.iter_mut().nth(i);
+                let account = self.accounts.get_mut(i);
                 if let Some(acc) = account {
                     acc.refresh(client, force).await;
                 }
             }
             self.save();
-            self.accounts.iter().nth(i)
+            self.accounts.get(i)
         } else { None }
     }
 

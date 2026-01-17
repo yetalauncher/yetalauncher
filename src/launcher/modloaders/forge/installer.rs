@@ -26,11 +26,12 @@ impl ForgeInstaller {
         ).download(client, notifier).await.map(|_| path.clone());
 
         if let Err(DownloadErr::Response(StatusCode::NOT_FOUND)) = download {
-            debug!("Falling back to {}", format!("https://maven.minecraftforge.net/net/minecraftforge/forge/{mc_ver}-{forge_ver}-{mc_ver}/forge-{mc_ver}-{forge_ver}-{mc_ver}-installer.jar"));
+            let fallback_url = format!("https://maven.minecraftforge.net/net/minecraftforge/forge/{mc_ver}-{forge_ver}-{mc_ver}/forge-{mc_ver}-{forge_ver}-{mc_ver}-installer.jar");
+            debug!("Falling back to {fallback_url}");
             
             Download::new(
                 path.clone(),
-                &format!("https://maven.minecraftforge.net/net/minecraftforge/forge/{mc_ver}-{forge_ver}-{mc_ver}/forge-{mc_ver}-{forge_ver}-{mc_ver}-installer.jar"),
+                &fallback_url,
                 None,
                 None
             ).download(client, notifier).await.map(|_| path)
@@ -88,14 +89,14 @@ impl ForgeInstaller {
             .build()
         ).expect("Failed to extract Forge installer jar!");
 
-        let legacy_installer = jar.files.iter().find(|(name, _)| **name == "version.json".to_string()).is_none(); // For versions 1.6 to 1.9
+        let legacy_installer = !jar.files.iter().any(|(name, _)| *name == "version.json"); // For versions 1.6 to 1.9
 
         for (f_path, f_contents) in jar.files.iter().filter(|(_, contents)| !contents.is_empty()) {
             let is_legacy = legacy_installer && f_path == "install_profile.json";
 
             if is_legacy {
                 info!("Detected legacy Forge installer! Running workarounds...");
-                let legacy_manifest: LegacyInstallerManifest = serde_json::from_slice(&f_contents).expect("Failed to parse legacy installer manifest!");
+                let legacy_manifest: LegacyInstallerManifest = serde_json::from_slice(f_contents).expect("Failed to parse legacy installer manifest!");
 
                 let version_manifest_path = ForgeVersionManifest::get_path(mc_ver, forge_ver);
                 let install_profile_path = ForgeInstallProfile::get_path(mc_ver, forge_ver);
@@ -143,7 +144,7 @@ impl ForgeProcessor {
         let classpath = self.classpath
         .iter()
         .chain(iter::once(&self.jar))
-        .map(|cp| get_library_dir().join(maven_identifier_to_path(&cp)).to_string_lossy().to_string())
+        .map(|cp| get_library_dir().join(maven_identifier_to_path(cp)).to_string_lossy().to_string())
         .collect::<Vec<String>>()
         .join(&get_classpath_separator());
 

@@ -29,6 +29,7 @@ pub enum ModLoaders {
 
 impl ModLoaders {
     pub async fn prepare_launch(&self, mc_ver: &str, loader_ver: &str, client: &Client, java_path: &str, mut notifier: Notifier) {
+        #[allow(clippy::single_match)]
         match self {
             ModLoaders::Forge => {
                 info!("Preparing launch with Forge...");

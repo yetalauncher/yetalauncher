@@ -58,7 +58,7 @@ impl CFInstance {
         )
     }
 
-    async fn download_icon(instance_path: &PathBuf, app: Arc<YetaLauncher>) -> IResult<Option<String>> {
+    async fn download_icon(instance_path: &Path, app: Arc<YetaLauncher>) -> IResult<Option<String>> {
         let instance = Self::get(instance_path).await?;
 
         let icon_path = {
@@ -109,7 +109,7 @@ pub struct CFMetadata {
 }
 
 impl CFMetadata {
-    pub async fn get(instance_path: &PathBuf, app: Arc<YetaLauncher>) -> IResult<Self> {
+    pub async fn get(instance_path: &Path, app: Arc<YetaLauncher>) -> IResult<Self> {
         let path = instance_path.join(META_FILE_NAME);
 
         match fs::read(&path).await {
@@ -141,7 +141,7 @@ impl CFMetadata {
         }
     }
 
-    async fn generate(instance_path: &PathBuf, app: Arc<YetaLauncher>) -> IResult<Self> {
+    async fn generate(instance_path: &Path, app: Arc<YetaLauncher>) -> IResult<Self> {
         let path = instance_path.join(META_FILE_NAME);
 
         let meta = CFMetadata {

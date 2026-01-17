@@ -3,6 +3,7 @@
     all(not(debug_assertions), target_os = "windows"),
     windows_subsystem = "windows"
 )]
+#![allow(clippy::expect_fun_call)]
 
 use std::{sync::{Arc, RwLock}, time::Instant};
 
@@ -158,7 +159,7 @@ impl YetaLauncher {
             let new_settings = window.unwrap().global::<Settings>().get_settings();
 
             settings.java_settings = new_settings.java_settings.iter()
-            .map(|java_setting| JavaDetails::from_slint(java_setting))
+            .map(JavaDetails::from_slint)
             .collect();
 
             settings.set();

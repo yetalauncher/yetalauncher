@@ -1,4 +1,4 @@
-use std::{fmt::Write, io::Cursor, path::PathBuf};
+use std::{fmt::Write, io::Cursor, path::{Path, PathBuf}};
 
 use chrono::TimeDelta;
 use log::*;
@@ -94,7 +94,7 @@ pub fn get_jar_main_class(jar_path: PathBuf) -> String {
     main_class.to_string()
 }
 
-pub async fn create_dir_parents(path: &PathBuf) {
+pub async fn create_dir_parents(path: &Path) {
     if let Some(p) = path.parent() {
         fs::create_dir_all(p).await.expect(&format!("Failed to create parent directories {p:?}"))
     }

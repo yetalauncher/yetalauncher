@@ -1,4 +1,4 @@
-use std::{fs::{self, File}, io::{self, BufReader}, path::PathBuf};
+use std::{fs::{self, File}, io::{self, BufReader}, path::{Path, PathBuf}};
 
 use log::debug;
 use reqwest::Client;
@@ -83,7 +83,7 @@ impl MCLibrary {
         ).collect()
     }
 
-    pub fn extract_natives(&self, natives_path: &PathBuf) -> Result<(), std::io::Error> {
+    pub fn extract_natives(&self, natives_path: &Path) -> Result<(), std::io::Error> {
         if let(Some(extract_rule), Some(native)) = (&self.extract, self.get_native()) {
             let path = get_library_dir().join(&native.path);
             let reader = BufReader::new(File::open(path)?);
@@ -129,7 +129,7 @@ impl MCLibrary {
 impl MCRule {
     pub fn applies(&self) -> bool {
         if let Some(os_rule) = &self.os {
-            let arch_matches = os_rule.arch.as_ref().map_or(true, |arch| {
+            let arch_matches = os_rule.arch.as_ref().is_none_or(|arch| {
                 match arch.as_str() {
                     "x86" => cfg!(target_arch = "x86"),
                     "x86_64" => cfg!(target_arch = "x86_64"), // haven't seen this one yet, but might exist; won't hurt to have
@@ -137,7 +137,7 @@ impl MCRule {
                 }
             });
 
-            let os_matches = os_rule.name.as_ref().map_or(true, |os| {
+            let os_matches = os_rule.name.as_ref().is_none_or(|os| {
                 match os.as_str() {
                     "linux" => cfg!(target_os = "linux"),
                     "osx" => cfg!(target_os = "macos"),

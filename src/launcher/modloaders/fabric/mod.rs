@@ -35,7 +35,7 @@ impl FabricVersionManifest {
         match client.get(url).send().await.unwrap().json::<Self>().await {
             Ok(manifest) => Some(manifest),
             Err(e) => {
-                error!("Failed to get fabric version manifest: {}", e.to_string());
+                error!("Failed to get fabric version manifest: {}", e);
                 None
             }
         }

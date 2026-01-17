@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{path::Path, sync::Arc};
 
 use log::{*};
 use reqwest::Client;
@@ -52,7 +52,7 @@ impl SimpleInstance {
         info!("Launching NOW!");
 
         let mut process = Command::new(&java.path)
-        .current_dir(&minecraft_path)
+        .current_dir(minecraft_path)
         .args(additional_args.split_whitespace())
         .args(args.jvm)
         .arg(args.main_class)
@@ -92,7 +92,7 @@ impl SimpleInstance {
 
         notifier.send_progress(&format!("Getting version details for {}...", self.mc_version), 3);
         info!("Getting version details for {}...", self.mc_version);
-        let compact_version = MCVersionDetails::from_id(&self.mc_version, &client)
+        let compact_version = MCVersionDetails::from_id(&self.mc_version, client)
             .await
             .ok_or("Could not get Minecraft version details!".to_string())?;
     
@@ -101,18 +101,18 @@ impl SimpleInstance {
 
         notifier.send_progress(&format!("Getting version manifest for {}...", self.mc_version), 4);
         info!("Getting version manifest from {}", compact_version.url);
-        let mut version = compact_version.get_manifest(&client)
+        let mut version = compact_version.get_manifest(client)
             .await
             .ok_or("Could not get Minecraft version manifest!".to_string())?;
     
 
         notifier.send_progress("Pre-downloading client jar...", 5);
         debug!("Pre-downloading client jar...");
-        version.get_client_jar(&client).await;
+        version.get_client_jar(client).await;
     
 
         notifier.send_progress("Getting the modloader manifest...", 6);
-        if let Some(mf) = loader.get_manifest(&self.mc_version, &self.modloader.version, &client, notifier.make_new()).await {
+        if let Some(mf) = loader.get_manifest(&self.mc_version, &self.modloader.version, client, notifier.make_new()).await {
             info!("Merging with manifest of {loader} Loader...");
             version.merge_with(mf)
         }
@@ -121,27 +121,27 @@ impl SimpleInstance {
 
 
         notifier.send_progress("Preparing the modloader...", 7);
-        loader.prepare_launch(&self.mc_version, &self.modloader.version, &client, &java.path, notifier.make_new()).await;
+        loader.prepare_launch(&self.mc_version, &self.modloader.version, client, &java.path, notifier.make_new()).await;
     
         info!("Beginning argument parsing...");
         notifier.send_progress("Preparing the game...", 8);
         Ok(
             Self::parse_arguments(
                 Args {
-                    jvm: version.get_jvm_args(&client).await,
+                    jvm: version.get_jvm_args(client).await,
                     game: version.get_game_args(),
                     main_class: version.get_main_class()
                 },
                 &account,
                 version,
                 &self.minecraft_path,
-                &client,
+                client,
                 notifier
             ).await
         )
     }
     
-    async fn parse_arguments(args_struct: Args, account: &MCAccount, version: MCVersionManifest, minecraft_path: &PathBuf, client: &Client, notifier: &mut Notifier) -> Args {
+    async fn parse_arguments(args_struct: Args, account: &MCAccount, version: MCVersionManifest, minecraft_path: &Path, client: &Client, notifier: &mut Notifier) -> Args {
         let natives_path = minecraft_path.join("natives");
 
         let replacements = [
@@ -152,7 +152,7 @@ impl SimpleInstance {
     
             ("${classpath}", version.get_classpath(&natives_path, client, notifier.clone()).await),
             ("${assets_root}", version.get_client_assets(client, notifier.clone()).await),
-            ("${version_name}", version.id.replace(' ', "_").replace(':', "_")),
+            ("${version_name}", version.id.replace([' ', ':'], "_")),
             ("${assets_index_name}", version.asset_index.id),
             ("${version_type}", version.typ),
     
@@ -203,17 +203,15 @@ impl SimpleInstance {
         app.settings.read().unwrap().java_settings
         .iter()
         .find(|&java| {
-            java.minecraft_versions.max.as_ref().map_or(
-                false, 
+            java.minecraft_versions.max.as_ref().is_some_and(
                 |max| max.release_time >= version.release_time
             )
             &&
-            java.minecraft_versions.min.as_ref().map_or(
-                false, 
+            java.minecraft_versions.min.as_ref().is_some_and(
                 |min| min.release_time <= version.release_time
             )
         })
-        .map(Clone::clone)
+        .cloned()
         .ok_or_else(|| "Could not find Java to use for this version in the settings!".to_string())
     }
 }
