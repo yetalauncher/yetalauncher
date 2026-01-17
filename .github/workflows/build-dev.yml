@@ -9,7 +9,7 @@ jobs:
       matrix:
         platform:
           - name: windows-x86_64
-            container: windows-10
+            container: windows-2022
             target: x86_64-pc-windows-msvc
             args: "--no-default-features --features release"
 
