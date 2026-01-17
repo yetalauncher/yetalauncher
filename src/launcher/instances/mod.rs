@@ -52,7 +52,7 @@ pub enum InstanceType {
 }
 
 
-pub async fn get_instances(app: Arc<YetaLauncher>, notifier: Notifier) -> IResult<Vec<SimpleInstance>> {
+pub async fn get_instances(app: Arc<YetaLauncher>, notifier: &Notifier) -> IResult<Vec<SimpleInstance>> {
     notifier.send_msg("Scanning instances...");
     let time_start = Instant::now();
 

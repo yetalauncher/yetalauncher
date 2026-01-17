@@ -149,8 +149,10 @@ impl YetaLauncher {
         }));
 
         settings.on_add_java_setting(clone!([{ window.as_weak() } as window, app], move || {
-            let mut settings = app.settings.write().unwrap();
-            settings.java_settings.push(JavaDetails::default());
+            {
+                let mut settings = app.settings.write().unwrap();
+                settings.java_settings.push(JavaDetails::default());
+            }
             app.sync_settings(window.clone());
         }));
 
@@ -224,11 +226,15 @@ impl YetaLauncher {
             rt.spawn(clone!([window, app, notifier, rt], async move {
 
                 if app.instances.read().unwrap().is_none() || force {
-                    let instances = instances::get_instances(app.clone(), notifier.make_new()).await;
+                    let notif = notifier.make_new();
+                    let instances = instances::get_instances(app.clone(), &notifier).await;
 
                     match instances {
                         Ok(inst) => *app.instances.write().unwrap() = Some(inst),
-                        Err(err) => error!("Failed to gather instances: {err}")
+                        Err(err) => {
+                            notif.send_error(&format!("Failed to gather instances: {err}"));
+                            error!("Failed to gather instances: {err}")
+                        }
                     }
                 }
 
