@@ -56,6 +56,10 @@ jobs:
         run: sudo apt install -y fontconfig
         if: contains(matrix.platform.target, 'linux')
 
+      - name: Fix pkg-config
+        run: export PKG_CONFIG_PATH=/usr/lib/
+        if: contains(matrix.platform.target, 'linux')
+
       - name: Setup Rust build cache
         uses: Swatinem/rust-cache@v2
 
