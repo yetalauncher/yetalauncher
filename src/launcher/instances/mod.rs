@@ -251,7 +251,7 @@ impl SimpleInstance {
                 ).ok()?
             );
 
-            let image = image::io::Reader::new(reader).with_guessed_format().map_err(
+            let image = image::ImageReader::new(reader).with_guessed_format().map_err(
                 |err| warn!("Failed to guess icon format '{path}': {err}")
             ).ok()?;
             
