@@ -52,8 +52,8 @@ jobs:
         uses: rui314/setup-mold@main
         if: contains(matrix.platform.target, 'linux')
 
-      - name: Install fontconfig
-        run: sudo apt install -y fontconfig
+      - name: Install wayland
+        run: sudo apt install -y libwayland-dev wayland-protocols
         if: contains(matrix.platform.target, 'linux')
 
       - name: Fix pkg-config
