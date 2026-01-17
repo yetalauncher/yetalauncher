@@ -1,0 +1,14 @@
+import { Palette, App, Instances, CurrentInstance } from "../../globals.slint";
+
+export component ModsTab inherits VerticalLayout {
+    private property instance <=> CurrentInstance.current-simple;
+
+    
+    VerticalLayout {
+        init => {
+            if CurrentInstance.current-mods.instance != instance.name {
+                Instances.get-mods(instance.id);
+            }
+        }
+    }
+}

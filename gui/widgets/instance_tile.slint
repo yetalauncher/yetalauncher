@@ -1,5 +1,5 @@
 import { SlSimpleInstance } from "../structs.slint";
-import { App, Palette, Instances } from "../globals.slint";
+import { App, Palette, Instances, CurrentInstance } from "../globals.slint";
 import { Pages } from "../enums.slint";
 
 export component InstanceTile inherits VerticalLayout {
@@ -26,7 +26,7 @@ export component InstanceTile inherits VerticalLayout {
             Image {
                 width: parent.width;
                 height: parent.height;
-                source: instance.icon-path;
+                source: instance.icon;
             }
         }
 
@@ -97,7 +97,7 @@ export component InstanceTile inherits VerticalLayout {
             z: -1;
 
             clicked => {
-                App.current-instance = instance;
+                CurrentInstance.current-simple = instance;
                 App.page = Pages.Instance
             }
         }

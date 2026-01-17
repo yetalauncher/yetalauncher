@@ -7,7 +7,7 @@ import { Topbar } from "../widgets/topbar.slint";
 import { CustomSlider } from "../widgets/custom_slider.slint";
 
 export component HomePage inherits VerticalLayout {
-    Topbar {
+    topbar := Topbar {
         text: "Instances";
 
         Text {
@@ -40,6 +40,8 @@ export component HomePage inherits VerticalLayout {
     }
 
     if Instances.instances.length > 0: view := ListView {
+        height: parent.height - topbar.height;
+
         for instance_row in Instances.grid-instances(view.visible-width, Instances.instances, Settings.settings.instance-size): HorizontalLayout {
             for instance in instance-row: InstanceTile {
                 width: view.visible-width / ceil(view.visible-width / ((30 - Settings.settings.instance_size) * 15px));

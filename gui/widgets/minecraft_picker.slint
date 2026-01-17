@@ -30,7 +30,7 @@ export component MinecraftPicker inherits VerticalLayout {
     popup := PopupWindow {
         x: 4px; y: 32px; z: 2;
         width: 200px; height: 400px;
-        close-on-click: false;
+        close-policy: PopupClosePolicy.close-on-click-outside;
 
         Rectangle {
             background: Palette.bg-tertiary;

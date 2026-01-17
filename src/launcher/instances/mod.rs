@@ -1,6 +1,7 @@
 use std::{cmp::Ordering, fs::File, io::BufReader, path::PathBuf, sync::Arc};
 
 use clone_macro::clone;
+use image::RgbaImage;
 use slint::{Image, SharedPixelBuffer};
 use tokio::{fs, runtime::Handle, task::JoinSet, time::Instant};
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
@@ -16,6 +17,7 @@ use super::modloaders::ModLoaders;
 pub mod errors;
 pub mod curseforge;
 pub mod multimc;
+pub mod instance;
 
 // Instance Gather Result
 pub type IResult<T> = core::result::Result<T, InstanceGatherError>;
@@ -24,7 +26,7 @@ pub type IResult<T> = core::result::Result<T, InstanceGatherError>;
 #[derive(Debug, Clone)]
 pub struct SimpleInstance {
     pub name: String,
-    pub icon_path: Option<String>,
+    pub icon: Option<RgbaImage>,
     pub minecraft_path: PathBuf,
     pub instance_path: PathBuf,
     pub id: u32,
@@ -124,7 +126,9 @@ impl SimpleInstance {
             id: meta.instance_id,
             play_count: meta.play_count,
 
-            icon_path: instance_cfg.get_icon(app),
+            icon: if let Some(path) = instance_cfg.get_icon(app) {
+                Self::load_image(path).await
+            } else { None },
             name: instance_cfg.name,
             last_played: instance_cfg.last_played.and_then(|time| DateTime::from_timestamp_millis(time)),
             last_played_for: instance_cfg.last_played_for.map(|seconds| TimeDelta::seconds(seconds)),
@@ -173,7 +177,9 @@ impl SimpleInstance {
             minecraft_path: path.clone(),
             instance_path: path.clone(),
 
-            icon_path: meta.saved_icon,
+            icon: if let Some(path) = meta.saved_icon {
+                Self::load_image(path).await
+            } else { None },
             id: meta.instance_id,
             total_time_played: meta.total_time_played.map(TimeDelta::seconds),
 
@@ -209,10 +215,16 @@ impl SimpleInstance {
 
     pub async fn to_slint(&self) -> SlSimpleInstance {
         SlSimpleInstance {
-            icon_path: //Image::load_from_path(PathBuf::from(&self.icon_path).as_path()).unwrap_or_default(),
-            self.load_image().await.unwrap_or(
-                Image::load_from_path(PathBuf::from("resources/default_instance.png").as_path()).unwrap_or_default()
-            ),
+            icon: if let Some(icon) = &self.icon {
+                Image::from_rgba8(
+                SharedPixelBuffer::clone_from_slice(
+                        icon.as_raw(),
+                        icon.width(),
+                        icon.height()
+                    )
+                )
+            } else { Image::load_from_path(PathBuf::from("resources/default_instance.png").as_path()).unwrap_or_default() },
+
             id: (self.id as i32).into(),
             instance_path: self.instance_path.to_string_lossy().to_string().into(),
             instance_type: self.instance_type.to_slint(),
@@ -229,38 +241,35 @@ impl SimpleInstance {
         }
     }
 
-    async fn load_image(&self) -> Option<Image> {
-        if let Some(path) = self.icon_path.clone() {
-            let image = Handle::current().spawn(async move {
-                
-                let reader = BufReader::new(
-                    File::open(&path).or_else(
-                        |_| File::open(format!("{path}.png"))
-                    ).map_err(
+    async fn load_image(path: String) -> Option<RgbaImage> {
+        Handle::current().spawn(async move {
+            let reader = BufReader::new(
+                File::open(&path).or_else(
+                    |_| File::open(format!("{path}.png"))
+                ).map_err(
                     |err| warn!("Failed to open instance icon '{path}': {err}")
-                ).ok()?);
-    
-                let image = image::io::Reader::new(reader).with_guessed_format().map_err(
-                    |err| warn!("Failed to guess icon format '{path}': {err}")
-                ).ok()?;
-                
-                let decoded = image.decode().map_err(
-                    |err| warn!("Failed to decode instance icon '{path}': {err}")
-                ).ok()?;
+                ).ok()?
+            );
 
-                Some(decoded.into_rgba8())
-            }).await.unwrap()?;
-    
-            Some(
-                Image::from_rgba8(
-                SharedPixelBuffer::clone_from_slice(
-                        image.as_raw(),
-                        image.width(),
-                        image.height()
-                    )
-                )
-            )
-        } else { None }
+            let image = image::io::Reader::new(reader).with_guessed_format().map_err(
+                |err| warn!("Failed to guess icon format '{path}': {err}")
+            ).ok()?;
+            
+            let decoded = image.decode().map_err(
+                |err| warn!("Failed to decode instance icon '{path}': {err}")
+            ).ok()?;
+
+            Some(decoded.into_rgba8())
+        }).await.unwrap()
+            //Some(
+            //    Image::from_rgba8(
+            //    SharedPixelBuffer::clone_from_slice(
+            //            image.as_raw(),
+            //            image.width(),
+            //            image.height()
+            //        )
+            //    )
+            //)
     }
 }
 

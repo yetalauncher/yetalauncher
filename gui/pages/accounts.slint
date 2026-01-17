@@ -6,7 +6,7 @@ import { SlSimpleInstance } from "../structs.slint";
 import { Topbar } from "../widgets/topbar.slint";
 
 export component AccountsPage inherits VerticalLayout {
-    Topbar {
+    topbar := Topbar {
         text: "Accounts";
 
         IconButton {
@@ -19,6 +19,8 @@ export component AccountsPage inherits VerticalLayout {
     }
 
     if Accounts.accounts.accounts.length > 0: view := ListView {
+        height: parent.height - topbar.height;
+
         for accounts_row in Accounts.grid-accounts(view.visible-width, Accounts.accounts.accounts): HorizontalLayout {
             for account in accounts-row: AccountTile {
                 width: view.visible-width / ceil(view.visible-width / ((30 - Settings.settings.instance_size) * 15px));

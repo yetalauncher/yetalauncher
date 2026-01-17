@@ -1,7 +1,7 @@
 import { HorizontalBox } from "std-widgets.slint";
 import { Sidebar } from "widgets/sidebar.slint";
 import { Pages } from "enums.slint";
-import { App, Settings, Instances, Accounts, Minecraft, Palette } from "globals.slint";
+import { App, Settings, Instances, CurrentInstance, Accounts, Minecraft, Palette } from "globals.slint";
 import { SettingsPage } from "pages/settings.slint";
 import { HomePage } from "pages/home.slint";
 import { AccountsPage } from "pages/accounts.slint";
@@ -16,7 +16,6 @@ export component MainWindow inherits Window {
     
     title <=> App.title;
     background: Palette.bg-primary;
-    padding: 0;
     default-font-family: "Nunito";
     default-font-size: 16px;
     default-font-weight: 500;
@@ -36,4 +35,4 @@ export component MainWindow inherits Window {
     NotifContainer { z: 50; parent_height: root.height; }
 }
 
-export { App, Settings, Instances, Accounts, Minecraft }
+export { App, Settings, Instances, CurrentInstance, Accounts, Minecraft }

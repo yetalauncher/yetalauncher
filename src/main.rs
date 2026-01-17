@@ -74,6 +74,7 @@ impl YetaLauncher {
         let settings = window.global::<Settings>();
         let accounts = window.global::<Accounts>();
         let instances = window.global::<Instances>();
+        let cur_instance = window.global::<CurrentInstance>();
         let minecraft = window.global::<Minecraft>();
 
         settings.set_settings(app.settings.read().unwrap().to_slint());
@@ -289,6 +290,20 @@ impl YetaLauncher {
                 SimpleInstance::launch(app, instance_id, &mut notifier).await.unwrap_or_else(|err| {
                     notifier.send_error(&format!("Failed to launch instance: {err}"));
                 });
+            }));
+        }));
+
+        instances.on_get_mods(clone!([rt, app, { window.as_weak() } as window], move |instance_id| {
+            rt.spawn(clone!([app, window], async move {
+                if let Some(instances) = app.instances.read().unwrap().as_ref() {
+                    if let Some(instance) = instances.iter().find(|inst| inst.id == instance_id as u32) {
+                        info!("getting {:?}", instance.name);
+                        
+                        window.upgrade_in_event_loop(clone!([{ instance.name } as name], |win| {
+                            win.global::<CurrentInstance>().invoke_set_name(name.into());
+                        })).unwrap();
+                    }
+                }
             }));
         }));
         // End Instance related callbacks

@@ -8,11 +8,22 @@ export global App {
         page == Pages.Create ? "Create - YetaLauncher" :
         page == Pages.Accounts ? "Accounts - YetaLauncher" :
         page == Pages.Settings ? "Settings - YetaLauncher" :
-        page == Pages.Instance ? "'" + current-instance.name + "' - YetaLauncher" :
+        page == Pages.Instance ? "'" + CurrentInstance.current-simple.name + "' - YetaLauncher" :
         "YetaLauncher";
 
     in-out property <[SlNotif]> notifications;
-    in property <SlSimpleInstance> current-instance;
+}
+
+export global CurrentInstance {
+    in-out property <SlSimpleInstance> current-simple;
+    in-out property <{instance: string, mods: [string]}> current-mods;
+
+    public function set-name(string: string) {
+        current-mods.instance = string;
+    }
+    public function set-mods(mods: [string]) {
+        current-mods.mods = mods;
+    }
 }
 
 export global Settings {
@@ -44,6 +55,7 @@ export global Instances {
     callback get-instances(bool);
     pure callback grid-instances(length, [SlSimpleInstance], int) -> [[SlSimpleInstance]];
     callback launch-instance(int);
+    callback get-mods(int);
 }
 
 export global Minecraft {

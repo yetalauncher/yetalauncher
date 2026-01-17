@@ -1,11 +1,13 @@
 import { SlSimpleInstance } from "../structs.slint";
-import { App, Settings, Palette } from "../globals.slint";
+import { App, Instances, Palette, CurrentInstance } from "../globals.slint";
 import { Topbar } from "../widgets/topbar.slint";
 import { IconButton } from "../widgets/icon_button.slint";
+import { TabWidget } from "std-widgets.slint";
+import { ModsTab } from "instance_tabs/mods.slint";
 
 
 export component InstancePage inherits VerticalLayout {
-    private property instance <=> App.current-instance;
+    private property instance <=> CurrentInstance.current-simple;
 
     Topbar {
         text: instance.name;
@@ -17,23 +19,26 @@ export component InstancePage inherits VerticalLayout {
             icon: @image-url("../../resources/tabler-icons/caret-right.svg");
 
             clicked => {
-                Settings.launch-instance(instance.id);
+                Instances.launch-instance(instance.id);
             }
         }
     }
 
     content := VerticalLayout {
         padding: 10px;
+        spacing: 10px;
 
         Rectangle {
             border-radius: 8px;
             background: Palette.bg-secondary;
             height: 200px;
+            border-width: 1px;
+            border-color: Palette.bg-tertiary;
 
             image := Image {
                 x: 8px; y: 8px;
                 height: parent.height - self.y * 2;
-                source: instance.icon-path;
+                source: instance.icon;
             }
 
             VerticalLayout {
@@ -54,6 +59,33 @@ export component InstancePage inherits VerticalLayout {
                 Text {
                     private property <string> play-count: instance.play-count.length == 1 ? instance.play-count[0] : "Unknown";
                     text: "Number of times played: " + play-count;
+                }
+            }
+        }
+
+        Rectangle {
+            border-radius: 8px;
+            background: Palette.bg-secondary;
+            border-width: 1px;
+            border-color: Palette.bg-tertiary;
+
+            Rectangle {
+                background: Palette.bg-tertiary;
+                y: 31px;
+                z: 5;
+                height: 2px;
+            }
+
+            TabWidget {
+                y: 1px;
+
+                Tab {
+                    title: "Mods";
+                    ModsTab {}
+                }
+                Tab {
+                    title: "Mods 2";
+                    Text { text: "test 2"; }
                 }
             }
         }

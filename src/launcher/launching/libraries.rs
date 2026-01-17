@@ -46,7 +46,7 @@ impl MCLibrary {
         if let Some(classifiers) = &self.downloads.classifiers {
             if cfg!(windows) {
                 classifiers.natives_windows.as_ref()
-            } else if cfg!(macos) {
+            } else if cfg!(target_os = "macos") {
                 classifiers.natives_osx.as_ref()
             } else {
                 classifiers.natives_linux.as_ref()
